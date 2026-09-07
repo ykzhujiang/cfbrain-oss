@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>EnvironmentVariables</key>
+	<dict>
+		<key>HOME</key>
+		<string>$HOME</string>
+		<key>PATH</key>
+		<string>/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin</string>
+	</dict>
+	<key>Label</key>
+	<string>com.<AGENT_NAME>.cron-mailbox</string>
+	<key>ProgramArguments</key>
+	<array>
+		<string>/bin/bash</string>
+		<string>-c</string>
+		<string>set -a; source $CFBRAIN_HOME/main/.env 2&gt;/dev/null; set +a; exec /bin/bash $CFBRAIN_HOME/shared/scripts/cron-run.sh --agent-if cron-mailbox $CFBRAIN_HOME/shared/scripts/cron-mailbox-precheck.sh '执行邮件碎片收集：/tmp/cfbrain-mailbox-batch.json 是本轮批次清单，按 shared/context/mailbox-collector-workflow.md 的五段链处理（收信→整理→确认→入库→发送）。整理后在飞书 DM 呈现待确认稿并等<OWNER>确认；未经<OWNER>确认不得入库，未入库成功不得发信。'</string>
+	</array>
+	<key>RunAtLoad</key>
+	<false/>
+	<key>StandardErrorPath</key>
+	<string>$CFBRAIN_HOME/main/logs/cron-mailbox-launchd-err.log</string>
+	<key>StandardOutPath</key>
+	<string>$CFBRAIN_HOME/main/logs/cron-mailbox-launchd.log</string>
+	<key>StartCalendarInterval</key>
+	<array>
+		<dict>
+			<key>Minute</key>
+			<integer>0</integer>
+		</dict>
+		<dict>
+			<key>Minute</key>
+			<integer>30</integer>
+		</dict>
+	</array>
+	<key>WorkingDirectory</key>
+	<string>$CFBRAIN_HOME/main</string>
+</dict>
+</plist>

@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>EnvironmentVariables</key>
+	<dict>
+		<key>HOME</key>
+		<string>$HOME</string>
+		<key>PATH</key>
+		<string>/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin</string>
+	</dict>
+	<key>Label</key>
+	<string>com.<AGENT_NAME>.cron-inspect</string>
+	<key>ProgramArguments</key>
+	<array>
+		<string>/bin/bash</string>
+		<string>-c</string>
+		<string>set -a; source $CFBRAIN_HOME/main/.env 2&gt;/dev/null; set +a; exec /bin/bash $CFBRAIN_HOME/shared/scripts/cron-run.sh --agent cron-inspect '执行周检查任务：全面检查系统状态并生成检查报告'</string>
+	</array>
+	<key>RunAtLoad</key>
+	<false/>
+	<key>StandardErrorPath</key>
+	<string>$CFBRAIN_HOME/main/logs/cron-inspect-launchd-err.log</string>
+	<key>StandardOutPath</key>
+	<string>$CFBRAIN_HOME/main/logs/cron-inspect-launchd.log</string>
+	<key>StartCalendarInterval</key>
+	<array>
+		<dict>
+			<key>Hour</key>
+			<integer>3</integer>
+			<key>Minute</key>
+			<integer>0</integer>
+			<key>Weekday</key>
+			<integer>0</integer>
+		</dict>
+	</array>
+	<key>WorkingDirectory</key>
+	<string>$CFBRAIN_HOME/main</string>
+</dict>
+</plist>

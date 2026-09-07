@@ -1,0 +1,73 @@
+# ---------------------------------------------------------------------------
+# Secrets — NEVER commit these.
+#
+# Lesson learned the hard way: a .gitignore rule does NOT untrack a file that
+# is already committed. If you ever find a secret in the index, you must run
+#   git rm --cached <file>
+# AND rotate the key, because it is still in git history.
+# ---------------------------------------------------------------------------
+.env
+.env.*
+!.env.example
+*.env.bak
+config.json
+*.pem
+*.key
+credentials*
+secrets*
+
+# ---------------------------------------------------------------------------
+# Knowledge base data — this is YOUR private content, not part of the project.
+# CFBrain stores the brain outside the repo (~/.cfbrain) by default, but guard
+# against it being created inside the repo too.
+# ---------------------------------------------------------------------------
+pages/
+raw/
+export/
+.cfbrain/
+brain.pglite/
+brain.pglite*/
+pglite/
+pglite-data/
+*.pglite
+.trash/
+
+# Agent runtime state (templates ship empty; real content is private)
+agent-templates/shared/outbox/*/*
+!agent-templates/shared/outbox/*/.gitkeep
+agent-templates/shared/mailbox/
+agent-templates/*/logs/*.log
+agent-templates/*/.opencode/node_modules/
+minutes/
+attachments/
+.opencode-lark/
+.playwright-cli/
+
+# ---------------------------------------------------------------------------
+# Build output & dependencies
+# ---------------------------------------------------------------------------
+node_modules/
+bin/
+dist/
+*.tsbuildinfo
+
+# ---------------------------------------------------------------------------
+# Logs & temp
+# ---------------------------------------------------------------------------
+*.log
+logs/
+tmp/
+.tmp/
+
+# ---------------------------------------------------------------------------
+# OS / editor
+# ---------------------------------------------------------------------------
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp
+
+# Python (used by a few helper scripts)
+__pycache__/
+*.pyc

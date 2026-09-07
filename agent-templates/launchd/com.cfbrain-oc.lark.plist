@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.<AGENT_NAME>.lark</string>
+    <key>ProgramArguments</key>
+    <array>
+        <string>bun</string>
+        <string>run</string>
+        <string>src/index.ts</string>
+    </array>
+    <key>WorkingDirectory</key>
+    <string>$CFBRAIN_HOME/main/opencode-lark</string>
+    <key>EnvironmentVariables</key>
+    <dict>
+        <key>HOME</key>
+        <string>$HOME</string>
+        <key>PATH</key>
+        <string>$HOME/.bun/bin:/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin</string>
+        <key>FEISHU_APP_ID</key>
+        <string><YOUR_FEISHU_APP_ID></string>
+        <key>FEISHU_APP_SECRET</key>
+        <string>8ceJXC5e3Hvw42c4SqjzSbTrMhwZkfXY</string>
+        <key>OPENCODE_SERVER_URL</key>
+        <string>http://127.0.0.1:3496</string>
+        <key>OPENCODE_CWD</key>
+        <string>$CFBRAIN_HOME/main/</string>
+        <key>FEISHU_WEBHOOK_PORT</key>
+        <string>3009</string>
+    </dict>
+    <key>KeepAlive</key>
+    <true/>
+    <key>RunAtLoad</key>
+    <true/>
+    <key>StandardOutPath</key>
+    <string>$CFBRAIN_HOME/main/logs/lark-bridge.log</string>
+    <key>StandardErrorPath</key>
+    <string>$CFBRAIN_HOME/main/logs/lark-bridge.log</string>
+</dict>
+</plist>

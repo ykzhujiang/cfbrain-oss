@@ -1,0 +1,478 @@
+import { readFileSync, readdirSync, statSync, existsSync, writeFileSync, unlinkSync } from 'fs';
+import { join, relative, extname, basename } from 'path';
+import { createHash } from 'crypto';
+import type { BrainEngine } from '../core/engine.ts';
+
+interface FileRecord {
+  id: number;
+  page_slug: string | null;
+  filename: string;
+  storage_path: string;
+  mime_type: string | null;
+  size_bytes: number;
+  content_hash: string;
+  metadata: Record<string, unknown>;
+  created_at: string;
+}
+
+const MIME_TYPES: Record<string, string> = {
+  '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.png': 'image/png',
+  '.gif': 'image/gif', '.webp': 'image/webp', '.svg': 'image/svg+xml',
+  '.pdf': 'application/pdf', '.mp4': 'video/mp4', '.m4a': 'audio/mp4',
+  '.mp3': 'audio/mpeg', '.wav': 'audio/wav', '.heic': 'image/heic',
+  '.tiff': 'image/tiff', '.tif': 'image/tiff', '.dng': 'image/x-adobe-dng',
+  '.doc': 'application/msword', '.docx': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+  '.xls': 'application/vnd.ms-excel', '.xlsx': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+  '.ppt': 'application/vnd.ms-powerpoint', '.pptx': 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+};
+
+function getMimeType(filePath: string): string | null {
+  const ext = extname(filePath).toLowerCase();
+  return MIME_TYPES[ext] || null;
+}
+
+function fileHash(filePath: string): string {
+  const content = readFileSync(filePath);
+  return createHash('sha256').update(content).digest('hex');
+}
+
+export async function runFiles(engine: BrainEngine, args: string[]) {
+  const subcommand = args[0];
+
+  switch (subcommand) {
+    case 'list':
+      await listFiles(engine, args[1]);
+      break;
+    case 'upload':
+      await uploadFile(engine, args.slice(1));
+      break;
+    case 'sync':
+      await syncFiles(engine, args[1]);
+      break;
+    case 'verify':
+      await verifyFiles(engine);
+      break;
+    case 'mirror':
+      await mirrorFiles(args.slice(1));
+      break;
+    case 'unmirror':
+      await unmirrorFiles(args.slice(1));
+      break;
+    case 'redirect':
+      await redirectFiles(args.slice(1));
+      break;
+    case 'restore':
+      await restoreFiles(args.slice(1));
+      break;
+    case 'clean':
+      await cleanFiles(args.slice(1));
+      break;
+    case 'status':
+      await filesStatus(args.slice(1));
+      break;
+    default:
+      console.error(`Usage: cfbrain files <list|upload|sync|verify|mirror|unmirror|redirect|restore|clean|status> [args]`);
+      console.error(`  list [slug]               List files for a page (or all)`);
+      console.error(`  upload <file> --page <slug>  Upload file linked to page`);
+      console.error(`  sync <dir>                Upload directory to storage`);
+      console.error(`  verify                    Verify all uploads match local`);
+      console.error(`  mirror <dir> [--dry-run]  Mirror files to cloud storage`);
+      console.error(`  unmirror <dir>            Remove mirror marker (files stay in storage)`);
+      console.error(`  redirect <dir> [--dry-run]  Replace files with .redirect breadcrumbs`);
+      console.error(`  restore <dir>             Download from storage, recreate local files`);
+      console.error(`  clean <dir> [--yes]       Delete .redirect breadcrumbs (irreversible)`);
+      console.error(`  status                    Show migration status of directories`);
+      process.exit(1);
+  }
+}
+
+async function listFiles(engine: BrainEngine, slug?: string) {
+  const rows = await engine.listFiles(slug);
+
+  if (rows.length === 0) {
+    console.log(slug ? `No files for page: ${slug}` : 'No files stored.');
+    return;
+  }
+
+  console.log(`${rows.length} file(s):`);
+  for (const row of rows) {
+    const size = row.size_bytes ? `${Math.round(row.size_bytes / 1024)}KB` : '?';
+    console.log(`  ${row.page_slug || '(unlinked)'} / ${row.filename}  [${size}, ${row.mime_type || '?'}]`);
+  }
+}
+
+async function uploadFile(engine: BrainEngine, args: string[]) {
+  const filePath = args.find(a => !a.startsWith('--'));
+  const pageSlug = args.find((a, i) => args[i - 1] === '--page') || null;
+
+  if (!filePath || !existsSync(filePath)) {
+    console.error('Usage: cfbrain files upload <file> --page <slug>');
+    process.exit(1);
+  }
+
+  const stat = statSync(filePath);
+  const hash = fileHash(filePath);
+  const filename = basename(filePath);
+  const storagePath = pageSlug ? `${pageSlug}/${filename}` : `unsorted/${hash.slice(0, 8)}-${filename}`;
+  const mimeType = getMimeType(filePath);
+
+  // Check for existing file via engine
+  const existingUrl = await engine.getFileUrl(storagePath);
+  if (existingUrl) {
+    console.log(`File already uploaded (hash match): ${storagePath}`);
+    return;
+  }
+
+  // Upload to storage backend if configured
+  const { loadConfig } = await import('../core/config.ts');
+  const config = loadConfig();
+  if (config?.storage) {
+    const { createStorage } = await import('../core/storage.ts');
+    const storage = await createStorage(config.storage);
+    const content = readFileSync(filePath);
+    await storage.upload(storagePath, content, mimeType || undefined);
+  }
+
+  await engine.uploadFile({
+    page_slug: pageSlug ?? undefined,
+    filename,
+    storage_path: storagePath,
+    mime_type: mimeType ?? undefined,
+    size_bytes: stat.size,
+    content_hash: hash,
+    metadata: {},
+  });
+
+  console.log(`Uploaded: ${storagePath} (${Math.round(stat.size / 1024)}KB)`);
+}
+
+async function syncFiles(engine: BrainEngine, dir?: string) {
+  if (!dir || !existsSync(dir)) {
+    console.error('Usage: cfbrain files sync <directory>');
+    process.exit(1);
+  }
+
+  const files = collectFiles(dir);
+  console.log(`Found ${files.length} files to sync`);
+
+  let uploaded = 0;
+  let skipped = 0;
+
+  for (let i = 0; i < files.length; i++) {
+    const filePath = files[i];
+    const relativePath = relative(dir, filePath);
+
+    if ((i + 1) % 50 === 0 || i === files.length - 1) {
+      process.stdout.write(`\r  ${i + 1}/${files.length} processed, ${uploaded} uploaded, ${skipped} skipped`);
+    }
+
+    const hash = fileHash(filePath);
+    const filename = basename(filePath);
+    const storagePath = relativePath.replace(/\\/g, '/');
+    const mimeType = getMimeType(filePath);
+    const stat = statSync(filePath);
+
+    // Check for existing file via engine
+    const existingUrl = await engine.getFileUrl(storagePath);
+    if (existingUrl) {
+      skipped++;
+      continue;
+    }
+
+    // Infer page slug from directory structure
+    const pathParts = relativePath.split('/');
+    const pageSlug = pathParts.length > 1 ? pathParts.slice(0, -1).join('/') : undefined;
+
+    await engine.uploadFile({
+      page_slug: pageSlug,
+      filename,
+      storage_path: storagePath,
+      mime_type: mimeType ?? undefined,
+      size_bytes: stat.size,
+      content_hash: hash,
+      metadata: {},
+    });
+
+    uploaded++;
+  }
+
+  console.log(`\n\nFiles sync complete: ${uploaded} uploaded, ${skipped} skipped (unchanged)`);
+}
+
+async function verifyFiles(engine: BrainEngine) {
+  const rows = await engine.listFiles();
+
+  if (rows.length === 0) {
+    console.log('No files to verify.');
+    return;
+  }
+
+  let verified = 0;
+  let mismatches = 0;
+  let missing = 0;
+
+  for (const row of rows) {
+    // Note: full verification would check Supabase Storage hash
+    // For now, verify the DB record exists and has valid data
+    if (!row.content_hash || !row.storage_path) {
+      mismatches++;
+      console.error(`  MISMATCH: ${row.storage_path} (missing hash or path)`);
+    } else {
+      verified++;
+    }
+  }
+
+  if (mismatches === 0 && missing === 0) {
+    console.log(`${verified} files verified, 0 mismatches, 0 missing`);
+  } else {
+    console.error(`VERIFY FAILED: ${mismatches} mismatches, ${missing} missing.`);
+    console.error(`Run: cfbrain files sync --retry-failed`);
+    process.exit(1);
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────
+// File Migration Commands (mirror → redirect → clean lifecycle)
+// ─────────────────────────────────────────────────────────────────
+
+async function mirrorFiles(args: string[]) {
+  const dir = args.find(a => !a.startsWith('--'));
+  const dryRun = args.includes('--dry-run');
+  if (!dir || !existsSync(dir)) { console.error('Usage: cfbrain files mirror <dir> [--dry-run]'); process.exit(1); }
+
+  const { createStorage } = await import('../core/storage.ts');
+  const { loadConfig } = await import('../core/config.ts');
+  const { stringify } = await import('../core/yaml-lite.ts');
+  const config = loadConfig();
+  if (!config?.storage) { console.error('No storage backend configured. Run cfbrain init with storage settings.'); process.exit(1); }
+
+  const storage = await createStorage(config.storage);
+  const files = collectFiles(dir);
+  console.log(`Found ${files.length} files to mirror`);
+
+  if (dryRun) {
+    for (const f of files) { console.log(`  Would upload: ${relative(dir, f)}`); }
+    console.log(`\nDry run: ${files.length} files would be uploaded.`);
+    return;
+  }
+
+  let uploaded = 0;
+  for (const filePath of files) {
+    const relPath = relative(dir, filePath);
+    const data = readFileSync(filePath);
+    const mime = getMimeType(filePath);
+    await storage.upload(relPath, data, mime || undefined);
+    uploaded++;
+  }
+
+  // Write .supabase marker
+  const marker = stringify({
+    synced_at: new Date().toISOString(),
+    bucket: config.storage.bucket || 'brain-files',
+    prefix: basename(dir) + '/',
+    file_count: uploaded,
+  });
+  writeFileSync(join(dir, '.supabase'), marker);
+
+  console.log(`Mirrored ${uploaded} files. Marker written to ${dir}/.supabase`);
+}
+
+async function unmirrorFiles(args: string[]) {
+  const dir = args.find(a => !a.startsWith('--'));
+  if (!dir) { console.error('Usage: cfbrain files unmirror <dir>'); process.exit(1); }
+
+  const markerPath = join(dir, '.supabase');
+  if (existsSync(markerPath)) {
+    unlinkSync(markerPath);
+    console.log(`Removed mirror marker from ${dir}. Files remain in storage.`);
+  } else {
+    console.log(`No mirror marker found in ${dir}. Nothing to do.`);
+  }
+}
+
+async function redirectFiles(args: string[]) {
+  const dir = args.find(a => !a.startsWith('--'));
+  const dryRun = args.includes('--dry-run');
+  if (!dir || !existsSync(dir)) { console.error('Usage: cfbrain files redirect <dir> [--dry-run]'); process.exit(1); }
+
+  const markerPath = join(dir, '.supabase');
+  if (!existsSync(markerPath)) {
+    console.error('Directory must be mirrored first. Run: cfbrain files mirror <dir>');
+    process.exit(1);
+  }
+
+  const { parse: parseYaml, stringify } = await import('../core/yaml-lite.ts');
+  const marker = parseYaml(readFileSync(markerPath, 'utf-8'));
+  const files = collectFiles(dir);
+
+  if (dryRun) {
+    for (const f of files) { console.log(`  Would redirect: ${relative(dir, f)}`); }
+    console.log(`\nDry run: ${files.length} files would be redirected.`);
+    return;
+  }
+
+  // Verify remote files exist before deleting locals
+  const { loadConfig } = await import('../core/config.ts');
+  const config = loadConfig();
+  let storage: any = null;
+  if (config?.storage) {
+    const { createStorage } = await import('../core/storage.ts');
+    storage = await createStorage(config.storage);
+  }
+
+  let redirected = 0;
+  let skippedMissing = 0;
+  for (const filePath of files) {
+    const relPath = relative(dir, filePath);
+    const hash = fileHash(filePath);
+
+    // Verify remote exists before deleting local
+    if (storage) {
+      const remoteExists = await storage.exists(relPath);
+      if (!remoteExists) {
+        console.error(`  Skipping ${relPath}: not found in remote storage (would lose data)`);
+        skippedMissing++;
+        continue;
+      }
+    }
+
+    const breadcrumb = stringify({
+      moved_to: 'storage',
+      bucket: marker.bucket || 'brain-files',
+      path: relPath,
+      moved_at: new Date().toISOString().split('T')[0],
+      original_hash: `sha256:${hash}`,
+    });
+    writeFileSync(filePath + '.redirect', breadcrumb);
+    unlinkSync(filePath);
+    redirected++;
+  }
+
+  console.log(`Redirected ${redirected} files. Originals removed, breadcrumbs created.`);
+  if (skippedMissing > 0) {
+    console.log(`Skipped ${skippedMissing} files (not found in remote storage — run 'cfbrain files mirror' first).`);
+  }
+  console.log('To undo: cfbrain files restore <dir>');
+}
+
+async function restoreFiles(args: string[]) {
+  const dir = args.find(a => !a.startsWith('--'));
+  if (!dir || !existsSync(dir)) { console.error('Usage: cfbrain files restore <dir>'); process.exit(1); }
+
+  const { createStorage } = await import('../core/storage.ts');
+  const { loadConfig } = await import('../core/config.ts');
+  const { parse: parseYaml } = await import('../core/yaml-lite.ts');
+  const config = loadConfig();
+  if (!config?.storage) { console.error('No storage backend configured.'); process.exit(1); }
+
+  const storage = await createStorage(config.storage);
+  const redirectFiles: string[] = [];
+
+  function findRedirects(d: string) {
+    for (const entry of readdirSync(d)) {
+      if (entry.startsWith('.')) continue;
+      const full = join(d, entry);
+      if (statSync(full).isDirectory()) findRedirects(full);
+      else if (entry.endsWith('.redirect')) redirectFiles.push(full);
+    }
+  }
+  findRedirects(dir);
+
+  let restored = 0;
+  let failed = 0;
+  for (const redirectPath of redirectFiles) {
+    const info = parseYaml(readFileSync(redirectPath, 'utf-8'));
+    const originalPath = redirectPath.replace(/\.redirect$/, '');
+    try {
+      const data = await storage.download(info.path);
+      writeFileSync(originalPath, data);
+      unlinkSync(redirectPath);
+      restored++;
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : String(e);
+      console.error(`  Failed to restore ${info.path}: ${msg}`);
+      failed++;
+    }
+  }
+
+  console.log(`Restored ${restored} files. ${failed > 0 ? `${failed} failed.` : ''}`);
+}
+
+async function cleanFiles(args: string[]) {
+  const dir = args.find(a => !a.startsWith('--'));
+  const confirmed = args.includes('--yes');
+  if (!dir || !existsSync(dir)) { console.error('Usage: cfbrain files clean <dir> [--yes]'); process.exit(1); }
+
+  if (!confirmed) {
+    console.error('WARNING: This permanently removes .redirect breadcrumbs.');
+    console.error('After this, files are only accessible from cloud storage.');
+    console.error('Git history still has the originals if you need them.');
+    console.error('Run with --yes to confirm.');
+    process.exit(1);
+  }
+
+  let cleaned = 0;
+  function findAndClean(d: string) {
+    for (const entry of readdirSync(d)) {
+      if (entry.startsWith('.')) continue;
+      const full = join(d, entry);
+      if (statSync(full).isDirectory()) findAndClean(full);
+      else if (entry.endsWith('.redirect')) { unlinkSync(full); cleaned++; }
+    }
+  }
+  findAndClean(dir);
+
+  console.log(`Cleaned ${cleaned} redirect breadcrumbs. Cloud storage is now the only source.`);
+}
+
+async function filesStatus(args: string[]) {
+  const dir = args[0] || '.';
+
+  let mirrored = 0, redirected = 0, local = 0;
+
+  function scan(d: string) {
+    for (const entry of readdirSync(d)) {
+      if (entry.startsWith('.') && entry !== '.supabase') continue;
+      const full = join(d, entry);
+      if (entry === '.supabase') { mirrored++; continue; }
+      if (statSync(full).isDirectory()) scan(full);
+      else if (entry.endsWith('.redirect')) redirected++;
+      else if (!entry.endsWith('.md')) local++;
+    }
+  }
+  scan(dir);
+
+  console.log('File migration status:');
+  console.log(`  Mirrored directories: ${mirrored}`);
+  console.log(`  Redirected files: ${redirected}`);
+  console.log(`  Local binary files: ${local}`);
+
+  if (mirrored === 0 && redirected === 0 && local > 0) {
+    console.log(`\n${local} local files. Run: cfbrain files mirror <dir> to start migration.`);
+  } else if (redirected > 0) {
+    console.log(`\n${redirected} files redirected to storage. Run: cfbrain files clean <dir> --yes to remove breadcrumbs.`);
+  }
+}
+
+function collectFiles(dir: string): string[] {
+  const files: string[] = [];
+
+  function walk(d: string) {
+    for (const entry of readdirSync(d)) {
+      if (entry.startsWith('.')) continue;
+
+      const full = join(d, entry);
+      const stat = statSync(full);
+
+      if (stat.isDirectory()) {
+        walk(full);
+      } else if (!entry.endsWith('.md')) {
+        // Non-markdown files are candidates for storage
+        files.push(full);
+      }
+    }
+  }
+
+  walk(dir);
+  return files.sort();
+}

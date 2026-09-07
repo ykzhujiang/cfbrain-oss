@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>EnvironmentVariables</key>
+	<dict>
+		<key>HOME</key>
+		<string>$HOME</string>
+		<key>PATH</key>
+		<string>/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin</string>
+	</dict>
+	<key>Label</key>
+	<string>com.<AGENT_NAME>.cron-briefing</string>
+	<key>ProgramArguments</key>
+	<array>
+		<string>/bin/bash</string>
+		<string>-c</string>
+		<string>set -a; source $CFBRAIN_HOME/main/.env 2&gt;/dev/null; set +a; exec /bin/bash $CFBRAIN_HOME/shared/scripts/cron-run.sh --agent cron-briefing '执行每日简报任务：生成并推送今日简报到飞书'</string>
+	</array>
+	<key>RunAtLoad</key>
+	<false/>
+	<key>StandardErrorPath</key>
+	<string>$CFBRAIN_HOME/main/logs/cron-briefing-launchd-err.log</string>
+	<key>StandardOutPath</key>
+	<string>$CFBRAIN_HOME/main/logs/cron-briefing-launchd.log</string>
+	<key>StartCalendarInterval</key>
+	<array>
+		<dict>
+			<key>Hour</key>
+			<integer>8</integer>
+			<key>Minute</key>
+			<integer>0</integer>
+		</dict>
+	</array>
+	<key>WorkingDirectory</key>
+	<string>$CFBRAIN_HOME/main</string>
+</dict>
+</plist>

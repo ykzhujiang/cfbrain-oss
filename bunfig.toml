@@ -1,0 +1,8 @@
+# Bun configuration for cfbrain-cli.
+#
+# The preload is scoped under [test] on purpose. A top-level `preload` would also
+# apply to production runs (`bun run src/cli.ts`, see shared/scripts/cfbrain-exec.sh),
+# and the sandbox switch must never be on in production — it disables git
+# auto-commit and the $HOME/.cfbrain fallback that real `cfbrain put` depends on.
+[test]
+preload = ["./test/preload-sandbox.ts"]
