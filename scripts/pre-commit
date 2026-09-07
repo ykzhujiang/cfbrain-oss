@@ -1,0 +1,29 @@
+#!/usr/bin/env bash
+# Pre-commit hook: refuse to commit if the leak scanner finds anything.
+#
+# Install with:
+#   ./scripts/install-hooks.sh
+#
+# Bypass (only if you are certain it is a false positive):
+#   git commit --no-verify
+set -uo pipefail
+
+REPO_ROOT="$(git rev-parse --show-toplevel)"
+SCANNER="$REPO_ROOT/scripts/scan-secrets.sh"
+
+[ -x "$SCANNER" ] || exit 0
+
+echo "pre-commit: scanning for secrets..."
+# Do NOT pipe this — piping would mask the exit code and defeat the gate.
+if "$SCANNER" >/tmp/cfbrain-precommit-scan.txt 2>&1; then
+  echo "pre-commit: clean"
+  exit 0
+fi
+
+echo
+cat /tmp/cfbrain-precommit-scan.txt
+echo
+echo "pre-commit: BLOCKED — secrets or PII detected above."
+echo "  Fix them, or run 'git commit --no-verify' if it is genuinely a false positive"
+echo "  (and then add an allowlist entry to scripts/scan-secrets.sh)."
+exit 1

@@ -59,9 +59,11 @@ scan "no Feishu space id / wiki node tokens" \
 scan "no personal / org identifiers" \
   'ahzhu_agent|welltop|t8star|cfbrain-oc|朱江|井英|CreativeFitting|小江|小习|小默|xiaoxi-agent|silent-agent'
 
-# 3b. Cross-agent credential harvesting
+# 3b. Cross-agent credential harvesting.
+#     The audit report describes this pattern in prose, so it is allowlisted.
 scan "no reads of another agent's credential store" \
-  '\.openclaw/credentials|lark\.secrets\.json|\.xiaoxi/'
+  '\.openclaw/credentials|lark\.secrets\.json|\.xiaoxi/' \
+  'docs/AUDIT-AND-STRIPPING\.md'
 
 # 4. Hardcoded absolute home paths
 scan "no hardcoded /Users or /home paths" \
