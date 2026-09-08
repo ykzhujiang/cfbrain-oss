@@ -19,6 +19,7 @@
 | U2 | `npm install -g @larksuite/cli` 真的能装上 | 开发机早已装好，没法制造未安装状态 |
 | U3 | 飞书端到端：接知识库 + 推送成功 | 需要一次性知识库，不能用生产库测 |
 | U4 | Linux 平台（如果这台是 Linux） | 二进制编了但从未在 Linux 运行过 |
+| U5 | 用户数据不外泄、API key 不进 git | 安全默认值刚改过，必须在干净机器上确认生效 |
 
 ### 行为约束（必须遵守）
 
@@ -232,6 +233,94 @@ bun run src/cli.ts put test-fail --content-file /tmp/bad.md --no-embed
 
 ---
 
+## 7.5 验证数据不外泄 + key 不进 git（核心项 U5）
+
+**这一节最重要，必须做。** 它验证使用者不会因为用默认配置就泄漏自己的 API key。
+
+背景：`init` 会把 `~/.cfbrain` 变成 git 仓库，且每次 `put` 会自动本地 commit。
+所以「哪些文件没被 ignore」直接决定了使用者 push 时会泄漏什么。
+
+用一个**假 key** 来测（不要用真 key）：
+
+```bash
+export TESTHOME=$(mktemp -d)
+HOME=$TESTHOME bun run src/cli.ts init --pglite --non-interactive --key sk-faketestkey1234567890
+cd $TESTHOME/.cfbrain
+```
+
+### 7.5.1 有没有配远端
+
+```bash
+git remote -v
+```
+**预期：完全没有输出。**
+
+**判定：** 如果输出了任何远端地址 → ❌ **严重问题，立刻停下报告**。这意味着用户数据可能被推到别处。
+
+### 7.5.2 假 key 会被提交吗
+
+```bash
+cat .gitignore
+git check-ignore -v config.json
+git check-ignore -v brain.pglite
+```
+**预期：** `.gitignore` 里有 `config.json` 一条；两个 `check-ignore` 都**有输出**，形如：
+
+```
+.gitignore:3:config.json	config.json
+.gitignore:9:*.pglite	brain.pglite
+```
+
+（`brain.pglite` 是被 `*.pglite` 规则命中的，行号可能不同，只要有输出即通过。）
+
+**判定：** 任何一个**没有输出**（即未被忽略）→ ❌ **严重问题**。用户一 push 就会泄漏自己的 key。
+
+### 7.5.3 一共几个文件会被提交
+
+```bash
+git add -A --dry-run
+```
+**预期：只有 1 行**，即 `add '.gitignore'`。
+
+**判定：** 如果出现 `config.json` 或大量 `brain.pglite/...` → ❌ 严重问题。
+
+### 7.5.4 自动 commit 收了什么
+
+```bash
+printf -- '---\ntitle: 测试\ntypes: [note]\n---\n\n内容\n' > $TESTHOME/t.md
+cd /path/to/cfbrain-oss
+HOME=$TESTHOME bun run src/cli.ts put t1 --content-file $TESTHOME/t.md --no-embed
+cd $TESTHOME/.cfbrain && git log --oneline --stat -1
+```
+
+**预期 commit 里只有这 4 个：**
+```
+ .gitignore
+ CHANGELOG.md
+ pages/t1.md
+ raw/<日期>-t1.md
+```
+
+**判定：** 出现 `config.json` 或任何 `brain.pglite/` 文件 → ❌ **严重问题**。
+
+### 7.5.5 确认假 key 真的在 config.json 里（反证）
+
+```bash
+grep -o 'openai_api_key' $TESTHOME/.cfbrain/config.json
+```
+**预期：** 有输出。
+
+这一步是**反向验证**：证明 key 确实写进了那个文件，所以前面的「已忽略」才有意义。
+如果这里没输出，说明 key 存在别处，请在报告里说明，不要直接判定通过。
+
+```bash
+rm -rf $TESTHOME    # 清理
+```
+
+> ❌ 报告里不要写出任何真实 key。假 key `sk-faketestkey...` 可以写。
+
+---
+
 ## 8. 验证飞书端到端（核心项 U3）
 
 ⛔ **先停下问人**：「要建一个**一次性测试用**飞书知识库来验证推送。确认可以吗？建好后测完可以删。」
@@ -294,6 +383,7 @@ bun run src/cli.ts feishu status --json
 | U2 npm 装 lark-cli | ✅/❌/无法验证(本机已装) | |
 | U3 飞书端到端 | ✅/❌/未测 | |
 | U4 Linux 平台 | ✅/❌/不适用(非 Linux) | |
+| U5 数据不外泄 / key 不进 git | ✅/❌/未测 | |
 
 ## 各步骤结果
 | 步骤 | 命令 | 结论 | 实际输出关键行 |
@@ -303,6 +393,7 @@ bun run src/cli.ts feishu status --json
 | 5 二进制 | verify-binary.sh | ✅/❌ | n passed, m failed |
 | 6 飞书前置 | feishu setup | ✅/❌ | |
 | 7 自定义分类 | types add/remove | ✅/❌ | |
+| 7.5 数据不外泄 | git remote / check-ignore | ✅/❌ | |
 | 8 飞书推送 | feishu push --all | ✅/❌ | |
 
 ## 遇到的问题
@@ -338,6 +429,9 @@ Agent 最容易误报的就是这些，请对照：
 | `import` 之后 `backlinks` 返回 `[]` | 要再跑 `repair --links` 才建图，设计如此 |
 | `put` 用未声明的分类被拒 | **这是正确行为**，不是 bug |
 | 二进制第一次启动稍慢 | 首次要把 WASM 扩展解到临时目录 |
+| `~/.cfbrain` 里 `git remote -v` 是空的 | **这是正确的** —— 默认不同步任何数据 |
+| `put` 之后 `git status` 是干净的 | `put` 会自动本地 commit，不是没生效 |
+| `cfbrain config set` 后 `config.json` 没变化 | 那个命令写数据库，不写 config.json |
 | 二进制有 79MB（Linux 116MB） | 内嵌了 13.5MB WASM + Postgres 运行时 |
 
 ---
