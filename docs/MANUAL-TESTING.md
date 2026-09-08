@@ -232,10 +232,22 @@ cf feishu setup
 ## B. 测源码安装
 
 ```bash
-git clone <repo> && cd cfbrain-oss
+git clone https://github.com/ykzhujiang/cfbrain-oss.git && cd cfbrain-oss
 ./install.sh
 ```
 预期结尾：`ok doctor passed` + `CFBrain is installed.`
+
+### ⚠️ 装完先确认 bun 在 PATH 里
+
+如果 `install.sh` 帮你装了 Bun，它**改不了你当前 shell 的 PATH**（子进程无法修改父 shell 环境）。
+所以脚本成功了，下一条命令却会报 `bun: command not found`。
+
+```bash
+command -v bun || export PATH="$HOME/.bun/bin:$PATH"
+bun --version        # 有输出才继续
+```
+
+install.sh 结尾会显式提醒这一步。**这不是安装失败。**
 
 ```bash
 bun test
@@ -285,6 +297,7 @@ cfbrain --help
 | `~/.cfbrain` 里 `git remote -v` 是空的 | **这是对的** —— 默认不同步，要同步得自己加 remote |
 | `git status` 在 `put` 之后是干净的 | `put` 会自动本地 commit，不是没生效 |
 | `cfbrain config set` 后 `config.json` 没变 | 那个命令写的是数据库，不是 config.json |
+| `install.sh` 成功但 `bun` 找不到 | **不是失败** —— 加 `export PATH="$HOME/.bun/bin:$PATH"` 即可 |
 
 ---
 

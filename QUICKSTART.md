@@ -14,6 +14,18 @@ cd cfbrain-oss
 
 `install.sh` is idempotent — re-running it never overwrites your `.env` or your brain.
 
+> **⚠️ If it installed Bun for you, add it to your PATH before continuing.** A script
+> cannot modify its parent shell's environment, so `bun` will not be found even
+> though the install succeeded:
+>
+> ```bash
+> command -v bun || export PATH="$HOME/.bun/bin:$PATH"
+> bun --version
+> ```
+>
+> Add that `export` line to `~/.zshrc` / `~/.bashrc` to make it permanent.
+> `install.sh` prints this reminder at the end when it applies.
+
 It will:
 1. install Bun if missing
 2. `bun install`

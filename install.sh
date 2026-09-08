@@ -25,16 +25,19 @@ die()  { printf '\n\033[31merror:\033[0m %s\n' "$1" >&2; exit 1; }
 
 # --- 1. Bun -----------------------------------------------------------------
 say "Checking Bun"
+BUN_WAS_MISSING_FROM_PATH=0
 if ! command -v bun >/dev/null 2>&1; then
+  BUN_WAS_MISSING_FROM_PATH=1
   # Bun may be installed but not on PATH for this shell
   if [ -x "$HOME/.bun/bin/bun" ]; then
     export PATH="$HOME/.bun/bin:$PATH"
-    ok "found Bun at ~/.bun/bin (add it to your PATH to make this permanent)"
+    ok "found Bun at ~/.bun/bin (not on your PATH — see the note at the end)"
   else
     warn "Bun not found — installing from bun.sh"
     curl -fsSL https://bun.sh/install | bash
     export PATH="$HOME/.bun/bin:$PATH"
     command -v bun >/dev/null 2>&1 || die "Bun install failed. Install manually: https://bun.sh"
+    ok "Bun installed to ~/.bun/bin"
   fi
 fi
 ok "Bun $(bun --version)"
@@ -84,22 +87,35 @@ else
 fi
 
 # --- Done -------------------------------------------------------------------
-cat <<'EOF'
+echo ""
+echo "-------------------------------------------------------------------"
+printf '\033[1m  CFBrain is installed.\033[0m\n'
+echo "-------------------------------------------------------------------"
 
-  CFBrain is installed.
+# The single most common post-install failure: this script exported PATH for
+# ITSELF, but a shell cannot change its parent's environment. So if Bun was not
+# already on the caller's PATH, every following `bun ...` command fails with
+# "bun: command not found" even though the install succeeded. Say so loudly.
+if [ "$BUN_WAS_MISSING_FROM_PATH" = "1" ]; then
+  printf '\n\033[33m  ⚠  ONE MORE STEP — Bun is not on your PATH in this shell.\033[0m\n'
+  echo   "     Without this, the next command you run will fail with"
+  echo   '     "bun: command not found". Run this now:'
+  printf '\n\033[1m       export PATH="$HOME/.bun/bin:$PATH"\033[0m\n'
+  echo   ""
+  echo   "     To make it permanent, add that line to your shell profile"
+  echo   "     (~/.zshrc or ~/.bashrc), then restart your shell."
+  echo   ""
+  echo   "     Verify with:  bun --version"
+fi
+
+cat <<'EOF'
 
   Try it:
     bun run src/cli.ts --help
-    echo '---
-    title: My first note
-    types: [note]
-    ---
-    Hello brain.' | bun run src/cli.ts put my-first-note
-    bun run src/cli.ts get my-first-note
     bun run src/cli.ts list
 
   Optional — make `cfbrain` available globally:
     bun link
 
-  Next: read QUICKSTART.md
+  Next: read QUICKSTART.md   (data & privacy: docs/DATA-AND-SYNC.md)
 EOF

@@ -39,6 +39,8 @@
 ```bash
 git clone https://github.com/ykzhujiang/cfbrain-oss.git
 cd cfbrain-oss
+export REPO="$PWD"      # 后面会用到，记住这个路径
+echo "$REPO"
 ```
 
 **预期**：clone 成功，目录里有 `README.md`、`install.sh`、`src/`、`docs/`。
@@ -88,6 +90,36 @@ command -v lark-cli && lark-cli --version || echo "lark-cli: 未安装"
 | 报错 | **完整复制错误全文**，继续尝试第 4 节；若第 4 节也失败则 ⛔ 停下问人 |
 
 > ℹ️ 输出里 `lark-cli not installed` 是**正常的**，不是错误 —— 飞书是可选的，第 6 节再处理。
+
+---
+
+## 3.5 把 Bun 加进 PATH（⚠️ 最容易在这里失败）
+
+**这一步必做，否则后面每条命令都会报 `bun: command not found`。**
+
+原因：`install.sh` 如果帮你装了 Bun，它只能改自己进程的 PATH —— **子进程无法修改父 shell 的环境变量**。所以脚本成功了，但你的 shell 仍然找不到 `bun`。
+
+先检查：
+
+```bash
+command -v bun && bun --version || echo "bun 不在 PATH"
+```
+
+**如果显示「bun 不在 PATH」**，执行：
+
+```bash
+export PATH="$HOME/.bun/bin:$PATH"
+bun --version
+```
+
+**必须在同一个 shell 会话里继续后面所有步骤。** 如果你每条命令都是新开一个 shell 执行，
+那就在**每条**命令前都加上 `export PATH="$HOME/.bun/bin:$PATH" && `，例如：
+
+```bash
+export PATH="$HOME/.bun/bin:$PATH" && bun test 2>&1 | tail -6
+```
+
+**判定：** `bun --version` 有输出才算通过。没有就 ⛔ 停下问人，别继续往下走。
 
 ---
 
@@ -288,7 +320,7 @@ git add -A --dry-run
 
 ```bash
 printf -- '---\ntitle: 测试\ntypes: [note]\n---\n\n内容\n' > $TESTHOME/t.md
-cd /path/to/cfbrain-oss
+cd "$REPO"          # $REPO = 你 clone 出来的 cfbrain-oss 目录
 HOME=$TESTHOME bun run src/cli.ts put t1 --content-file $TESTHOME/t.md --no-embed
 cd $TESTHOME/.cfbrain && git log --oneline --stat -1
 ```
@@ -425,6 +457,7 @@ Agent 最容易误报的就是这些，请对照：
 | `doctor` 里 `pgvector` / `rls` 是 `warn` | 本地 PGLite 模式查不到这两项 |
 | `doctor` 里 `No embeddings yet` | 没配 `OPENAI_API_KEY`，语义搜索才需要 |
 | `install.sh` 里 `lark-cli not installed` | 飞书是可选的，第 6 节才装 |
+| `install.sh` 成功了但 `bun` 找不到 | **不是安装失败** —— 见第 3.5 节，加一下 PATH 即可 |
 | 用中文关键词 `search` 搜不到 | `search` 用的 tsvector 不切中文词，中文要用 `query`（需 API key） |
 | `import` 之后 `backlinks` 返回 `[]` | 要再跑 `repair --links` 才建图，设计如此 |
 | `put` 用未声明的分类被拒 | **这是正确行为**，不是 bug |
