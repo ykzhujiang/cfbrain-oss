@@ -490,7 +490,9 @@ TAGS
   untag <slug> <tag>                 Remove tag
 
 FEISHU
-  feishu init [--space-id ID]        Configure Feishu integration and create root nodes
+  feishu init [--create-space NAME]  Configure Feishu; creates a new wiki space,
+             [--space-id ID]          or wires up an existing one, then builds
+                                      one root folder per page type
   feishu status [--json]             Feishu sync status (pages, last push, pending)
   feishu unlink [--json]             Disconnect Feishu (keeps docs, disables sync)
   feishu push [--slug S] [--all]     Push brain pages to Feishu wiki

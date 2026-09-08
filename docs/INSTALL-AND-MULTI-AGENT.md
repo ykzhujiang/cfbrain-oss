@@ -108,10 +108,13 @@ So a classmate can throw away the whole default taxonomy and use their own.
 
 ```bash
 # 1. install and authenticate lark-cli separately (its own tool, own auth flow)
+npm install -g @larksuite/cli
+lark-cli config init --new
 lark-cli auth login
 
-# 2. create a wiki space in Feishu yourself, copy its space id from the URL
-# 3. wire it up — creates one root directory node per type, idempotent
+# 2a. let CFBrain create the space (needs one extra scope, granted once)
+cfbrain feishu init --create-space "My Brain"
+# 2b. or create it yourself in Feishu and pass its id (no extra scope needed)
 cfbrain feishu init --space-id <THEIR_SPACE_ID>
 
 # 4. push
@@ -121,8 +124,9 @@ cfbrain feishu status --json
 
 Notes and caveats:
 
-- **They must create the wiki space themselves.** `feishu init` does not create a
-  space; it takes an existing `space_id` and builds the type directories inside it.
+- `--create-space <name>` creates the space for them, but needs the
+  `wiki:space:write_only` scope (`lark-cli auth login --scope "wiki:space:write_only"`).
+  `--space-id <id>` works with a hand-created space and needs no extra scope.
 - `feishu init` creates directory nodes named from the **current** `type_labels`,
   so run `cfbrain types ...` **first**, then `feishu init`.
 - It is idempotent: existing root nodes with matching titles are reused, not
@@ -244,10 +248,18 @@ cfbrain feishu push --all
 | Download one binary, run it | **works** — `bun run build`, verified 11/11 in an isolated environment |
 | `npm install -g` from GitHub | untested; repo is private, so not usable by others yet |
 | Own categories | **works**, fully replaceable |
-| Own Feishu wiki | **works**, but the space must be created by hand first |
+| Own Feishu wiki | implemented both ways (`--create-space` / `--space-id`); **not verified end to end** — needs a throwaway Feishu account, see docs/FEISHU-SETUP.md |
 | Other agents writing via MCP | **works** (after the `serve` fix above) |
 | CJK keyword search | weak — `tsvector` does not segment CJK; use `query` instead |
 | Feishu attachments > ~100 MB | fails, leaves an empty attachment block |
 
 One more prerequisite worth stating: **the repo is currently PRIVATE.** Nobody can
 clone it until it is made public or they are added as a collaborator.
+
+---
+
+## Feishu specifics
+
+Which wiki space, how to authorise, and how categories work are covered in
+detail in **[FEISHU-SETUP.md](FEISHU-SETUP.md)**, including which parts are
+verified and which are not.

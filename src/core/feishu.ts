@@ -196,6 +196,49 @@ export async function feishuCreateNode(
 
 // ---------------------------------------------------------------------------
 
+interface CreateSpaceResponse {
+  data?: {
+    space?: { space_id?: string; name?: string };
+    space_id?: string;
+  };
+  space?: { space_id?: string; name?: string };
+  space_id?: string;
+}
+
+/**
+ * Create a new Feishu wiki space and return its id.
+ *
+ * Saves the user from having to create a space in the Feishu UI and then hunt
+ * for its id in the URL. Runs: lark-cli wiki +space-create --name <name>
+ */
+export async function feishuCreateSpace(
+  name: string,
+  description?: string,
+): Promise<{ space_id: string }> {
+  // Creating a wiki space is a user-only operation — the API rejects a bot
+  // identity ("this command only supports: user"), so pin --as user explicitly
+  // rather than relying on lark-cli's auto-detected default.
+  const args = ['wiki', '+space-create', '--as', 'user', '--name', name];
+  if (description) args.push('--description', description);
+
+  const raw = await runLarkCli(args);
+  const parsed = parseJsonOutput<CreateSpaceResponse>(raw, 'feishuCreateSpace');
+
+  const spaceId =
+    parsed.data?.space?.space_id ??
+    parsed.data?.space_id ??
+    parsed.space?.space_id ??
+    parsed.space_id;
+
+  if (!spaceId) {
+    throw new Error(`feishuCreateSpace: missing space_id in response: ${raw}`);
+  }
+
+  return { space_id: spaceId };
+}
+
+// ---------------------------------------------------------------------------
+
 interface ListNodesResponse {
   data?: {
     items?: NodeItem[];

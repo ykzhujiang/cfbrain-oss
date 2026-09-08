@@ -217,6 +217,7 @@ Being honest about what does not work yet:
 | [docs/mcp/](docs/mcp/) | Claude Desktop / Claude Code / MCP setup |
 | [docs/ENGINES.md](docs/ENGINES.md) | PGLite vs Postgres trade-offs |
 | [docs/INSTALL-AND-MULTI-AGENT.md](docs/INSTALL-AND-MULTI-AGENT.md) | Install options, using your own Feishu wiki + categories, letting other agents write via MCP |
+| [docs/FEISHU-SETUP.md](docs/FEISHU-SETUP.md) | 飞书接入：用哪个知识库、怎么授权、分类怎么定 |
 | [docs/MANUAL-TESTING.md](docs/MANUAL-TESTING.md) | Step-by-step manual test guide with expected output |
 | [docs/AUDIT-AND-STRIPPING.md](docs/AUDIT-AND-STRIPPING.md) | How this open-source build was separated from its private origin |
 | [CONTRIBUTING.md](CONTRIBUTING.md) | Development workflow |

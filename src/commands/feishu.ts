@@ -3,6 +3,7 @@ import { loadConfig, saveConfig, DEFAULT_TYPE_LABELS, type FeishuConfig, type GB
 import {
   isLarkCliAvailable,
   feishuCreateNode,
+  feishuCreateSpace,
   feishuValidateNode,
   feishuListNodes,
   feishuListComments,
@@ -397,14 +398,54 @@ async function runFeishuInit(_engine: BrainEngine, args: string[]): Promise<void
   if (!available) {
     console.error('lark-cli is not available in PATH.');
     console.error('Install it and authenticate before running feishu init.');
-    console.error('See: https://github.com/larksuite/lark-cli');
+    console.error('  npm install -g @larksuite/cli   then:  lark-cli auth login');
+    console.error('See: https://github.com/larksuite/cli');
     process.exit(1);
   }
 
-  // 2. Resolve space_id from --space-id flag or prompt
+  // 2. Resolve space_id: --create-space makes a new one, --space-id uses an
+  //    existing one, otherwise prompt.
   let spaceId: string | undefined;
+
+  const createSpaceIndex = args.indexOf('--create-space');
+  if (createSpaceIndex !== -1) {
+    const spaceName = args[createSpaceIndex + 1];
+    if (!spaceName || spaceName.startsWith('--')) {
+      console.error('--create-space requires a name, e.g. --create-space "My Brain"');
+      process.exit(1);
+    }
+    process.stdout.write(`Creating Feishu wiki space "${spaceName}"... `);
+    try {
+      const created = await feishuCreateSpace(spaceName);
+      spaceId = created.space_id;
+      console.log(`done (space_id: ${spaceId})`);
+    } catch (err) {
+      console.log('failed');
+      const msg = err instanceof Error ? err.message : String(err);
+      console.error(`  ${msg}`);
+      // Creating a space needs a scope that a default login does not include.
+      // Surface the exact remedy instead of making the user decode the JSON.
+      if (msg.includes('wiki:space:write_only') || msg.includes('missing_scope')) {
+        console.error('');
+        console.error('  Creating a wiki space needs an extra permission. Grant it once:');
+        console.error('    lark-cli auth login --scope "wiki:space:write_only"');
+        console.error('  then rerun this command.');
+      } else if (msg.includes('not_configured')) {
+        console.error('');
+        console.error('  lark-cli is not set up yet. Run:');
+        console.error('    lark-cli config init --new');
+        console.error('    lark-cli auth login');
+      }
+      console.error('');
+      console.error('  Alternative that needs no extra permission: create the space');
+      console.error('  yourself in Feishu, copy its id from the URL, then run:');
+      console.error('    cfbrain feishu init --space-id <id>');
+      process.exit(1);
+    }
+  }
+
   const spaceIdFlagIndex = args.indexOf('--space-id');
-  if (spaceIdFlagIndex !== -1 && args[spaceIdFlagIndex + 1]) {
+  if (!spaceId && spaceIdFlagIndex !== -1 && args[spaceIdFlagIndex + 1]) {
     spaceId = args[spaceIdFlagIndex + 1];
   }
 
