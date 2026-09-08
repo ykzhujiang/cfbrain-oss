@@ -23,7 +23,7 @@ Or build a single self-contained binary — no Bun, no `node_modules`, no source
 tree needed to run it:
 
 ```bash
-bun run build          # -> bin/cfbrain  (79 MB, everything embedded)
+bun run build          # -> bin/cfbrain  (~81 MB, everything embedded)
 ./scripts/verify-binary.sh
 ```
 
@@ -139,7 +139,7 @@ override when you genuinely need to.
 
 ## Requirements
 
-- **[Bun](https://bun.sh) ≥ 1.0** — the only hard dependency (`install.sh` will fetch it)
+- **[Bun](https://bun.sh) ≥ 1.2** — the only hard dependency (`install.sh` will fetch it). ⚠️ Bun 1.1.42 has a known `exitCode` regression — if you have it, run `bun upgrade` first.
 - **An OpenAI-compatible API key** — only for semantic search; keyword search works without one
 - *Optional:* Postgres/Supabase for large brains, `lark-cli` for Feishu sync
 

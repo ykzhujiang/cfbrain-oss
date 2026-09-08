@@ -11,6 +11,14 @@
 
 在一台**干净的机器**上安装 CFBrain 并验收。这是一次**首次安装验收测试**，目的是发现开发者在自己机器上测不出来的问题。
 
+### 环境要求
+
+| 依赖 | 最低版本 | 说明 |
+|---|---|---|
+| **Bun** | ≥ 1.2.0 | `install.sh` 会自动安装。⚠️ **Bun 1.1.42 有已知 bug**（`exitCode must be an integer`），会导致编译二进制和部分测试失败。如已安装该版本，请先 `bun upgrade`。推荐 ≥ 1.4.x。 |
+| Node.js / npm | ≥ 18 | 仅飞书集成需要（安装 `lark-cli`）；纯本地使用可不装 |
+| Git | ≥ 2.0 | 用于知识库版本控制 |
+
 **重点验证以下 4 项**（这些是目前尚未在干净环境验证过的）：
 
 | 编号 | 待验证项 | 为什么重要 |
@@ -61,6 +69,13 @@ command -v lark-cli && lark-cli --version || echo "lark-cli: 未安装"
 ```
 
 **把这些原样记下来，报告里要用。**
+
+> ⚠️ **Bun 版本检查**：如果 `bun --version` 显示 `1.1.42`，必须先升级再继续：
+> ```bash
+> bun upgrade
+> bun --version   # 确认 ≥ 1.2.0
+> ```
+> Bun 1.1.42 有 `exitCode must be an integer` 的 regression bug，会导致第 4、5 步失败。
 
 > 📌 **关键**：如果 `lark-cli` 显示「未安装」，那太好了 —— 这台机器正好能验证 **U2**。请在第 6 节认真测它。
 > 如果已经装了，就在报告里注明「U2 无法验证：本机已装」。
@@ -465,7 +480,8 @@ Agent 最容易误报的就是这些，请对照：
 | `~/.cfbrain` 里 `git remote -v` 是空的 | **这是正确的** —— 默认不同步任何数据 |
 | `put` 之后 `git status` 是干净的 | `put` 会自动本地 commit，不是没生效 |
 | `cfbrain config set` 后 `config.json` 没变化 | 那个命令写数据库，不写 config.json |
-| 二进制有 79MB（Linux 116MB） | 内嵌了 13.5MB WASM + Postgres 运行时 |
+| 二进制有 79–81MB（Linux 116MB） | 内嵌了 13.5MB WASM + Postgres 运行时 |
+| Bun 1.1.42 下编译二进制失败 `exitCode must be an integer` | **这是 Bun 的已知 bug**，升级到 ≥ 1.2.0 即可解决，见第 0 节环境要求 |
 
 ---
 
