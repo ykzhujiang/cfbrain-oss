@@ -24,6 +24,31 @@ CFBrain 的知识库本体是**完全自包含**的：下载一个二进制就�
 
 ## 第一步：装 lark-cli 并授权
 
+### 推荐：一条命令，自动检测 + 引导安装
+
+```bash
+cfbrain feishu setup
+```
+
+它依次检查三件事，缺哪个补哪个：
+
+1. **lark-cli 装了没** —— 没装就问「要不要现在用 npm 装？」，你答 y 才装
+2. **飞书应用配好没** —— 没配就带你跑 `lark-cli config init --new`
+3. **授权了没** —— 没授权就带你跑 `lark-cli auth login`
+
+全绿之后它会直接告诉你下一步该干什么。
+
+行为保证：
+
+- **绝不擅自安装** —— 一定先问，除非你显式加 `--yes`
+- **没有终端交互时（CI、管道）不挂起** —— 打印手动步骤后正常退出
+- **可反复跑** —— 已完成的步骤自动跳过
+- `--check` 只检查，不改任何东西
+
+没装 npm 时会明确指向 Node.js，而不是丢一个看不懂的报错。
+
+### 或者全手动
+
 ```bash
 npm install -g @larksuite/cli     # 官方包
 lark-cli config init --new        # 会输出一个验证 URL，浏览器打开完成配置
@@ -159,10 +184,8 @@ cfbrain get first
 
 # ---- 以下才需要飞书 ----
 
-# 5. 装并授权 lark-cli
-npm install -g @larksuite/cli
-lark-cli config init --new
-lark-cli auth login
+# 5. 装并授权 lark-cli（一条命令，会先征求同意）
+cfbrain feishu setup
 
 # 6. 接上知识库
 cfbrain feishu init --space-id <他的 space id>
@@ -220,6 +243,11 @@ HOME=/path/to/brain-home LARK_CLI_HOME=/Users/you cfbrain feishu push --all
 | 二进制独立跑知识库 | ✅ 隔离环境实测 11/11 通过 |
 | `types add/remove/rename` 本地生效 | ✅ 实测（新类型能录、删掉的被拒） |
 | `feishu init` 缺 lark-cli 时给出可操作提示 | ✅ 实测 |
+| `feishu setup` 检测已装且已授权 | ✅ 实测（三项全绿） |
+| `feishu setup` 检测未装 lark-cli | ✅ 实测（二进制 + 空环境） |
+| `feishu setup` 无 npm 时给 Node.js 指引 | ✅ 实测 |
+| `feishu setup` 无终端时不挂起、不擅自安装 | ✅ 实测（30 秒超时未触发） |
+| `feishu setup` 真正执行 npm 安装 | ⚠️ **未实测** —— 本机已装 lark-cli，不想改动全局环境 |
 | `--create-space` 到 API 的链路 | ✅ 请求正确送达并拿到 API 响应 |
 | `--create-space` 真建出空间 | ⚠️ **未端到端验证** —— 需要 `wiki:space:write_only` 授权，得账号持有者本人开浏览器批准 |
 | `feishu init --space-id` + `push` 全链路 | ⚠️ **未在干净账号上验证** —— 需要一个一次性知识库，不能拿生产库试 |
