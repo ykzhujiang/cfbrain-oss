@@ -397,8 +397,14 @@ async function runFeishuInit(_engine: BrainEngine, args: string[]): Promise<void
   const available = await isLarkCliAvailable();
   if (!available) {
     console.error('lark-cli is not available in PATH.');
-    console.error('Install it and authenticate before running feishu init.');
-    console.error('  npm install -g @larksuite/cli   then:  lark-cli auth login');
+    console.error('');
+    console.error('Run the guided setup — it detects what is missing, asks before');
+    console.error('installing anything, and walks you through authorisation:');
+    console.error('  cfbrain feishu setup');
+    console.error('');
+    console.error('Or do it by hand:');
+    console.error('  npm install -g @larksuite/cli');
+    console.error('  lark-cli config init --new && lark-cli auth login');
     console.error('See: https://github.com/larksuite/cli');
     process.exit(1);
   }
@@ -2115,6 +2121,12 @@ export async function runFeishu(engine: BrainEngine, args: string[]): Promise<vo
   const subArgs = args.slice(1);
 
   switch (subcommand) {
+    case 'setup': {
+      const { runFeishuSetup } = await import('./feishu-setup.ts');
+      await runFeishuSetup(subArgs);
+      break;
+    }
+
     case 'init':
       await runFeishuInit(engine, subArgs);
       break;

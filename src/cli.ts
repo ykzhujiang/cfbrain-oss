@@ -305,6 +305,15 @@ async function handleCliOnly(command: string, args: string[]) {
     return;
   }
 
+  // `feishu setup` installs and authorises the Feishu prerequisites. It must
+  // work BEFORE a brain exists — telling a new user to create a brain first
+  // would be backwards.
+  if (command === 'feishu' && args[0] === 'setup') {
+    const { runFeishuSetup } = await import('./commands/feishu-setup.ts');
+    await runFeishuSetup(args.slice(1));
+    return;
+  }
+
   // All remaining CLI-only commands need a DB connection
   const engine = await connectEngine();
   try {
@@ -490,6 +499,8 @@ TAGS
   untag <slug> <tag>                 Remove tag
 
 FEISHU
+  feishu setup [--yes] [--check]     Guided setup: detect + install lark-cli,
+                                     configure the app, authorise
   feishu init [--create-space NAME]  Configure Feishu; creates a new wiki space,
              [--space-id ID]          or wires up an existing one, then builds
                                       one root folder per page type

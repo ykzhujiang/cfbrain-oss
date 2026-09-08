@@ -114,7 +114,7 @@ LINKS     link · unlink · backlinks · graph
 TAGS      tags · tag · untag
 EMBED     embed · repair
 SERVE     serve (HTTP) · call (MCP)
-FEISHU    feishu init/push/status/poll        (optional)
+FEISHU    feishu setup (guided install) · init/push/status/poll   (optional)
 ```
 
 `bun run src/cli.ts --help` prints the authoritative list.

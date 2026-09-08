@@ -72,6 +72,17 @@ else
   warn "doctor reported issues — run 'bun run src/cli.ts doctor' to see details"
 fi
 
+# --- 6. Feishu (optional) ----------------------------------------------------
+say "Feishu integration (optional)"
+if command -v lark-cli >/dev/null 2>&1; then
+  ok "lark-cli detected — run 'bun run src/cli.ts feishu setup' to finish wiring it up"
+else
+  warn "lark-cli not installed"
+  echo "    Feishu sync needs it. Everything else works without it."
+  echo "    Guided setup (detects, asks first, then installs):"
+  echo "      bun run src/cli.ts feishu setup"
+fi
+
 # --- Done -------------------------------------------------------------------
 cat <<'EOF'
 
