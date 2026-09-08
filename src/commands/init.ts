@@ -215,11 +215,53 @@ export function initBrainDirs(brainDir: string) {
     }
   }
 
-  // Add .gitignore for database files but NOT raw/
+  // .gitignore for the brain directory.
+  //
+  // This matters more than it looks. The brain dir is a git repo so you can
+  // version your knowledge, which means whatever is not ignored here is what
+  // gets pushed. Two things must never be pushed:
+  //
+  //   config.json  — can hold a plaintext API key (`cfbrain init --key ...`).
+  //                  A .gitignore rule does NOT untrack an already-committed
+  //                  file, so if this is missing on day one the key ends up in
+  //                  git history permanently and has to be rotated.
+  //   brain.pglite — the database. Tens of MB across thousands of files, and it
+  //                  is fully rebuildable from pages/. It also contains any
+  //                  secret stored via `cfbrain config set`.
+  //
+  // raw/ and pages/ are deliberately NOT ignored — they are the knowledge and
+  // the point of versioning it.
   const gitignorePath = join(brainDir, '.gitignore');
   if (!existsSync(gitignorePath)) {
     const { writeFileSync } = require('fs');
-    writeFileSync(gitignorePath, '*.db\n*.db-wal\n*.db-shm\nPGDATA/\n');
+    writeFileSync(
+      gitignorePath,
+      [
+        '# Secrets — config.json can contain a plaintext API key.',
+        '# Never commit this. Rotate the key if you already did.',
+        'config.json',
+        '',
+        '# Database — rebuildable from pages/, and may hold secrets set via',
+        '# `cfbrain config set`. Large and churns constantly.',
+        'brain.pglite/',
+        'brain.pglite*/',
+        '*.pglite',
+        'pglite/',
+        'pglite-data/',
+        'PGDATA/',
+        '*.db',
+        '*.db-wal',
+        '*.db-shm',
+        '',
+        '# Local scratch',
+        '.trash/',
+        '.DS_Store',
+        '*.log',
+        '',
+        '# pages/ and raw/ are intentionally tracked — that is your knowledge.',
+        '',
+      ].join('\n'),
+    );
   }
 }
 

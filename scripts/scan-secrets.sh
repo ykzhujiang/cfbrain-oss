@@ -75,7 +75,7 @@ scan "no hardcoded /Users or /home paths" \
 #    npm scopes, cloud hostnames, and test fixtures.
 scan "no real email addresses" \
   '[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}' \
-  '@example\.com|@test\.com|@t\.com|@x\.com|@y\.com|@acmecorp\.com|@company\.com|@gmail\.com|@slack\.com|@kovac\.dev|@novamind\.ai|somewhere-unknown\.io|@types/|@electric-sql|@anthropic-ai|@modelcontextprotocol|@aws-sdk|@larksuite|supabase\.co|amazonaws\.com|amazonses\.com|bun\.sh|schemas\.|\.png|@[a-z-]+/[a-z]'
+  '@example\.com|@test\.com|@t\.com|@x\.com|@y\.com|@acmecorp\.com|@company\.com|@gmail\.com|@slack\.com|@kovac\.dev|@novamind\.ai|somewhere-unknown\.io|@types/|@electric-sql|@anthropic-ai|@modelcontextprotocol|@aws-sdk|@larksuite|supabase\.co|amazonaws\.com|amazonses\.com|bun\.sh|schemas\.|\.png|@[a-z-]+/[a-z]|git@github\.com'
 
 # 6. Files that must never exist here
 echo

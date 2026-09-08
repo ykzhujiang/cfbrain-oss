@@ -8,6 +8,11 @@ every claim traceable back to its original source.
 
 It runs fully local by default. No server, no cloud account, no Docker.
 
+**Your data never leaves your machine.** `init` creates `~/.cfbrain` with no git
+remote configured, so nothing is pushed anywhere — not to GitHub, not to this
+project, not to anyone. Syncing is opt-in and you choose the destination; see
+[docs/DATA-AND-SYNC.md](docs/DATA-AND-SYNC.md).
+
 ```bash
 git clone https://github.com/ykzhujiang/cfbrain-oss.git
 cd cfbrain-oss
@@ -217,6 +222,7 @@ Being honest about what does not work yet:
 | [docs/mcp/](docs/mcp/) | Claude Desktop / Claude Code / MCP setup |
 | [docs/ENGINES.md](docs/ENGINES.md) | PGLite vs Postgres trade-offs |
 | [docs/INSTALL-AND-MULTI-AGENT.md](docs/INSTALL-AND-MULTI-AGENT.md) | Install options, using your own Feishu wiki + categories, letting other agents write via MCP |
+| [docs/DATA-AND-SYNC.md](docs/DATA-AND-SYNC.md) | 数据存在哪、同步到哪、和本仓库什么关系（**先读这个**） |
 | [docs/FEISHU-SETUP.md](docs/FEISHU-SETUP.md) | 飞书接入：用哪个知识库、怎么授权、分类怎么定 |
 | [docs/AGENT-INSTALL-GUIDE.md](docs/AGENT-INSTALL-GUIDE.md) | 给 AI Agent 执行的干净机器安装验收脚本 |
 | [docs/MANUAL-TESTING.md](docs/MANUAL-TESTING.md) | Step-by-step manual test guide with expected output |
