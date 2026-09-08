@@ -220,7 +220,11 @@ cfbrain config set openai_api_key sk-...
 | `~/.cfbrain/brain.pglite/` | 数据库（可从 `pages/` 重建） |
 | lark-cli 自己的目录 | 飞书授权 token（**不在** CFBrain 里） |
 
-`config.json` 可能含 API key，权限是 `0600`。**要把 `~/.cfbrain` 放 git 的话，仓库必须私有，且务必把 `config.json` 加进 `.gitignore`** —— 这个坑我们真踩过，见 `AUDIT-AND-STRIPPING.md`。
+`config.json` 可能含 API key，权限是 `0600`。
+
+`init` 会把 `~/.cfbrain` 初始化成 git 仓库，并**自动生成 `.gitignore` 挡掉 `config.json` 和数据库**，所以正常使用不会把 key 推出去。但仍然：**要同步的话仓库必须设为 Private**，因为 `pages/` 里是你的真实知识。
+
+详见 [DATA-AND-SYNC.md](DATA-AND-SYNC.md)。
 
 ---
 

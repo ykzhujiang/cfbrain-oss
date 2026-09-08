@@ -246,15 +246,14 @@ cfbrain feishu push --all
 | `git clone` + install script | **works** (verified on empty HOME) |
 | Global `cfbrain` command | **works** via `bun link` |
 | Download one binary, run it | **works** — `bun run build`, verified 11/11 in an isolated environment |
-| `npm install -g` from GitHub | untested; repo is private, so not usable by others yet |
+| `npm install -g` from GitHub | untested |
 | Own categories | **works**, fully replaceable |
 | Own Feishu wiki | implemented both ways (`--create-space` / `--space-id`); **not verified end to end** — needs a throwaway Feishu account, see docs/FEISHU-SETUP.md |
 | Other agents writing via MCP | **works** (after the `serve` fix above) |
 | CJK keyword search | weak — `tsvector` does not segment CJK; use `query` instead |
 | Feishu attachments > ~100 MB | fails, leaves an empty attachment block |
 
-One more prerequisite worth stating: **the repo is currently PRIVATE.** Nobody can
-clone it until it is made public or they are added as a collaborator.
+The repo is public, so `git clone` works with no credentials.
 
 ---
 

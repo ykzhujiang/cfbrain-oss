@@ -164,6 +164,22 @@ Run `doctor` first whenever something behaves oddly.
 
 ---
 
+## 8.5 Feishu sync (optional)
+
+If your company uses Feishu/Lark, one command handles the prerequisites — it
+detects what is missing and asks before installing anything:
+
+```bash
+cfbrain feishu setup          # installs + authorises lark-cli
+cfbrain feishu init --space-id <id>
+cfbrain feishu push --all
+```
+
+Define your categories first (`cfbrain types ...`) so the wiki folders are created
+correctly the first time. Details in [docs/FEISHU-SETUP.md](docs/FEISHU-SETUP.md).
+
+---
+
 ## 9. Connect it to Claude (optional)
 
 CFBrain speaks MCP, so an agent can read and write the brain directly:
@@ -194,14 +210,32 @@ See [docs/ENGINES.md](docs/ENGINES.md) for the trade-offs.
 
 | Path | What |
 |---|---|
-| `~/.cfbrain/brain.pglite` | the database |
-| `~/.cfbrain/pages/` | your pages as markdown (the source of truth) |
+| `~/.cfbrain/pages/` | your pages as markdown — **the source of truth** |
 | `~/.cfbrain/raw/` | original source files |
-| `./.env` | your keys — never committed |
+| `~/.cfbrain/brain.pglite/` | the database (rebuildable from `pages/`) |
+| `~/.cfbrain/config.json` | config — can contain an API key |
+| `./.env` | your keys for the repo side |
 
-Because `pages/` is plain markdown, you can put `~/.cfbrain` under its own private
-git repo and version your knowledge. **Keep that repo private, and never commit
-`config.json`** — it can contain API keys.
+### Your data does not go anywhere
+
+`init` makes `~/.cfbrain` a git repo and every `put` auto-commits **locally**. But
+**no git remote is configured**, so nothing is pushed — not to GitHub, not to this
+project, not to anyone.
+
+The generated `.gitignore` already excludes `config.json` (it can hold an API key)
+and `brain.pglite/` (large, and rebuildable). `pages/` and `raw/` are tracked on
+purpose — that is your knowledge.
+
+Want sync? Add your own remote:
+
+```bash
+cd ~/.cfbrain
+git remote add origin git@github.com:you/my-brain.git   # must be PRIVATE
+git push -u origin main
+```
+
+Full picture — including multi-device and non-git options — in
+[docs/DATA-AND-SYNC.md](docs/DATA-AND-SYNC.md).
 
 ---
 

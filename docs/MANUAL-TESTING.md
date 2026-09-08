@@ -162,6 +162,71 @@ cf call put_page '{"slug":"from-tool","content":"---\ntitle: T\ntypes: [note]\n-
 ```
 配好后在对话里让它 `list pages`，能列出来就是通了。
 
+### A5. 测「我的数据会不会被推出去」（重要）
+
+这是最该亲眼确认的一项。
+
+```bash
+# 用 --key 故意塞一个假 key 进去
+cf init --pglite --non-interactive --key sk-faketestkey1234567890
+cd $H/.cfbrain
+
+# 1. 有没有配远端？应该是空的
+git remote -v
+```
+**预期：完全没有输出**（没有远端 = 不可能推到任何地方）。
+
+```bash
+# 2. 假 key 会被提交吗？
+git check-ignore config.json && echo "已忽略（安全）" || echo "会被提交（危险）"
+
+# 3. 数据库会被提交吗？
+git check-ignore brain.pglite && echo "已忽略" || echo "会被提交"
+
+# 4. 一共几个文件待提交？
+git add -A --dry-run | wc -l
+```
+**预期：** 前两个都是「已忽略」，第 4 项是 `1`（只有 `.gitignore`）。
+
+```bash
+# 5. 写一条词条，看自动 commit 收了什么
+cf put t1 --content-file $H/p.md --no-embed
+cd $H/.cfbrain && git log --oneline --stat -1
+```
+**预期：** commit 里只有 `pages/`、`raw/`、`CHANGELOG.md`、`.gitignore`。
+**如果出现 `config.json` 或 `brain.pglite/...`，那是 ❌ 严重问题。**
+
+> 这一项在验证：用户不会因为使用默认配置就泄漏自己的 API key。
+
+### A6. 测飞书前置检测（不装也能测）
+
+```bash
+cf feishu setup --check
+```
+
+**如果本机没装 lark-cli，预期：**
+```
+1. lark-cli
+  --    lark-cli is not installed
+  Install it with:  npm install -g @larksuite/cli
+```
+
+**如果已装且已授权，预期三项全绿：**
+```
+1. lark-cli        ok  lark-cli is installed
+2. Feishu app      ok  configured (app cli_xxxx)
+3. Authorisation   ok  logged in as <你的名字>
+```
+
+`--check` 只检查、不改任何东西，可以放心跑。
+
+真要装的话去掉 `--check`，它会**先问你**才装：
+
+```bash
+cf feishu setup
+# -> Install @larksuite/cli globally via npm now? [Y/n]
+```
+
 ---
 
 ## B. 测源码安装
@@ -201,6 +266,9 @@ cfbrain --help
 | 能读写 | `put` → `get` → `list` | 三步都有输出 |
 | 分类可改 | `types add/remove` | 新类型能录、删掉的被拒 |
 | 别的 Agent 能写 | `verify-binary.sh` 第 8 步 | `MCP put_page` PASS |
+| **数据不外泄** | `git remote -v` in `~/.cfbrain` | **空**（无远端） |
+| **key 不进 git** | `git check-ignore config.json` | 已忽略 |
+| 飞书前置检测 | `cfbrain feishu setup --check` | 三项状态清楚 |
 
 ---
 
@@ -214,6 +282,9 @@ cfbrain --help
 | `import` 后 `backlinks` 是空的 | 要再跑一次 `repair --links` 才建图，这是设计如此（大批量导入时更快） |
 | `bun test` 有 119 个 skip | 需要外部 `DATABASE_URL` 的 E2E，正常 |
 | 二进制第一次启动稍慢 | 首次要把扩展包解到临时目录，之后就快了 |
+| `~/.cfbrain` 里 `git remote -v` 是空的 | **这是对的** —— 默认不同步，要同步得自己加 remote |
+| `git status` 在 `put` 之后是干净的 | `put` 会自动本地 commit，不是没生效 |
+| `cfbrain config set` 后 `config.json` 没变 | 那个命令写的是数据库，不是 config.json |
 
 ---
 
