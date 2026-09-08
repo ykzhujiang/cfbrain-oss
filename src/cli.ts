@@ -131,7 +131,7 @@ function parseOpArgs(op: Operation, args: string[]): Record<string, unknown> {
   }
 
   // Read stdin for content params — skip if --raw has a large PDF (auto-analyze generates content)
-  if (op.cliHints?.stdin && !params[op.cliHints.stdin] && !process.stdin.isTTY) {
+  if (op.cliHints?.stdin && !params[op.cliHints.stdin] && !params.content_file && !process.stdin.isTTY) {
     if (!hasLargePdfRaw(params)) {
       params[op.cliHints.stdin] = readFileSync('/dev/stdin', 'utf-8');
     }
