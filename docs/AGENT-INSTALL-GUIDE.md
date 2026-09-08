@@ -31,26 +31,18 @@
 
 ---
 
-## 1. 先确认你能拿到代码
+## 1. 拿代码
 
-**仓库当前是 PRIVATE，默认 clone 不了。** 先执行：
+仓库是公开的，直接 clone：
 
 ```bash
 git clone https://github.com/ykzhujiang/cfbrain-oss.git
 cd cfbrain-oss
 ```
 
-**如果成功** → 跳到第 2 节。
+**预期**：clone 成功，目录里有 `README.md`、`install.sh`、`src/`、`docs/`。
 
-**如果失败**（`Repository not found` / 要求认证）：
-
-⛔ **停下，告诉委托人**：「我没有仓库访问权限，请选一种方式：
-1. 把我的 GitHub 账号加为 collaborator（我的账号是 ___）
-2. 仓库转 public
-3. 直接给我一个源码压缩包
-4. 直接给我一个编译好的 `cfbrain` 二进制文件（那我只能做第 5、7、8 节，跳过第 4、6 节）」
-
-拿到访问权限后再继续。**不要尝试绕过权限。**
+如果失败，记下完整错误后 ⛔ 停下问人。**不要尝试绕过。**
 
 ---
 
