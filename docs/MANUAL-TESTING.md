@@ -1,0 +1,227 @@
+# 手动测试指南
+
+给人用的测试步骤。每步都写清楚**预期看到什么**，以及**看到什么就是坏了**。
+
+两条路径可以测：
+
+- **A. 单文件二进制** —— 下载一个文件就能跑，不需要装任何东西。这是给同学的主推方式。
+- **B. 源码安装** —— 需要 Bun，适合要改代码的人。
+
+---
+
+## A. 测单文件二进制（推荐先测这个）
+
+### A0. 先拿到二进制
+
+仓库里没有预编译文件（二进制 79 MB，不适合进 git）。自己编一个：
+
+```bash
+cd cfbrain-oss
+bun run build            # 产出 bin/cfbrain，约 10 秒
+```
+
+想编 Linux 版一起：
+
+```bash
+bun run build:all        # bin/cfbrain-darwin-arm64 (79M) + bin/cfbrain-linux-x64 (116M)
+```
+
+### A1. 一键自动验证（最省事）
+
+```bash
+./scripts/verify-binary.sh
+```
+
+这个脚本会把二进制拷到一个空目录、清空 `PATH`、给一个全新的假 HOME，然后跑 11 项检查。
+
+**预期最后一行：**
+
+```
+  11 passed, 0 failed
+The binary is self-contained.
+```
+
+**只要有一个 FAIL，就是坏了**，脚本会打印具体哪一步和错误内容。
+
+### A2. 手动逐步测（想亲眼看的话）
+
+刻意模拟「同学的电脑」——没有 Bun、没有源码：
+
+```bash
+# 1. 建一个干净目录，只放二进制
+mkdir -p /tmp/mytest && cp bin/cfbrain /tmp/mytest/
+cd /tmp/mytest && ls          # 预期：只有 cfbrain 一个文件
+
+# 2. 用一个全新的 HOME，并清空环境变量（env -i 表示不继承任何变量，包括 PATH）
+export H=/tmp/myhome && mkdir -p $H
+alias cf='env -i PATH=/usr/bin:/bin HOME=$H /tmp/mytest/cfbrain'
+
+# 3. 看它跑不跑
+cf --help
+```
+预期：打印 `cfbrain 0.8.0 -- personal knowledge brain` 和命令列表。
+
+```bash
+# 4. 建知识库 —— 这一步最关键
+cf init --pglite --non-interactive
+```
+**预期最后几行：**
+```
+Brain ready at /tmp/myhome/.cfbrain/brain.pglite
+0 pages. Engine: PGLite (local Postgres).
+Types: person, company, meeting, project, decision, concept, intel, deal, note, recruit
+```
+**坏了会看到**（这是我这轮修的两个 bug，如果又出现说明回退了）：
+```
+ENOENT: open '/$bunfs/root/pglite.data'          <- WASM 没嵌进去
+error: Extension bundle not found: ...tar.gz     <- 扩展没嵌进去
+```
+
+```bash
+# 5. 写一条、读回来
+cat > $H/p.md <<'EOF'
+---
+title: 我的第一条
+types: [note]
+---
+
+手动测试写入。
+EOF
+cf put my-first --content-file $H/p.md --no-embed
+cf get my-first
+cf list
+```
+预期：`put` 返回 `"status": "created_or_updated"`；`get` 打印出内容；`list` 里有 `my-first`。
+
+```bash
+# 6. 搜索（验证数据库索引正常）
+cf search "手动" --no-embed     # 中文可能搜不到，见下方说明
+cf search "note" --no-embed
+```
+
+```bash
+# 7. 体检
+cf doctor --json
+```
+预期：开头是 `{"status":"healthy"`。
+
+> `pgvector` 和 `rls` 显示 `warn` 是**正常的**，本地 PGLite 模式查不到这两项，不是故障。
+
+```bash
+# 8. 收尾清理
+rm -rf /tmp/mytest /tmp/myhome
+unalias cf
+```
+
+### A3. 测「自定义分类」（你关心的能力）
+
+```bash
+cf types list                          # 看当前分类
+cf types add paper --label "论文"       # 加自己的
+cf types remove deal                   # 删不要的
+cf types list                          # 确认变了
+```
+
+再验证真的生效：
+
+```bash
+printf -- '---\ntitle: 一篇论文\ntypes: [paper]\n---\n\nok\n' > $H/a.md
+cf put my-paper --content-file $H/a.md --no-embed      # 预期：成功
+
+printf -- '---\ntitle: 测试\ntypes: [deal]\n---\n\nok\n' > $H/b.md
+cf put should-fail --content-file $H/b.md --no-embed   # 预期：被拒绝
+```
+第二条**预期报错**（这就是对的）：
+```
+Error [invalid_params]: Invalid type(s): deal. Allowed types: ..., paper. Use --force to bypass.
+```
+
+### A4. 测「其他 Agent 能录入」（MCP）
+
+最简单的验证方式，不用配任何 Agent：
+
+```bash
+cf call get_page '{"slug":"my-first"}'
+cf call put_page '{"slug":"from-tool","content":"---\ntitle: T\ntypes: [note]\n---\nbody"}'
+```
+预期：都返回 JSON。这说明工具层通了。
+
+要验证完整 MCP 协议，用 `./scripts/verify-binary.sh`，它第 8 步会真的模拟一个外部 Agent 连上来写入。
+
+真接到 Claude / OpenCode 上：
+
+```json
+{
+  "mcpServers": {
+    "cfbrain": {
+      "command": "/absolute/path/to/cfbrain",
+      "args": ["serve"]
+    }
+  }
+}
+```
+配好后在对话里让它 `list pages`，能列出来就是通了。
+
+---
+
+## B. 测源码安装
+
+```bash
+git clone <repo> && cd cfbrain-oss
+./install.sh
+```
+预期结尾：`ok doctor passed` + `CFBrain is installed.`
+
+```bash
+bun test
+```
+**预期：`1080 pass · 119 skip · 0 fail`**
+（119 个 skip 是需要外部 Postgres 的 E2E，正常。**出现任何 fail 都是问题**。）
+
+```bash
+./scripts/scan-secrets.sh
+```
+**预期：`CLEAN — safe to commit.`**（这是防止密钥泄漏的闸门）
+
+```bash
+bun link          # 之后可以全局用 cfbrain
+cfbrain --help
+```
+
+---
+
+## C. 一分钟速查表
+
+| 测什么 | 命令 | 预期 |
+|---|---|---|
+| 二进制自包含 | `./scripts/verify-binary.sh` | `11 passed, 0 failed` |
+| 源码测试 | `bun test` | `1080 pass · 0 fail` |
+| 无密钥泄漏 | `./scripts/scan-secrets.sh` | `CLEAN` |
+| 装得起来 | `./install.sh` | `doctor passed` |
+| 能读写 | `put` → `get` → `list` | 三步都有输出 |
+| 分类可改 | `types add/remove` | 新类型能录、删掉的被拒 |
+| 别的 Agent 能写 | `verify-binary.sh` 第 8 步 | `MCP put_page` PASS |
+
+---
+
+## D. 已知的正常现象（不是 bug，别误报）
+
+| 现象 | 说明 |
+|---|---|
+| `doctor` 里 `pgvector` / `rls` 是 `warn` | 本地 PGLite 模式查不到，正常 |
+| `embeddings: No embeddings yet` | 没配 `OPENAI_API_KEY` 或没跑 `repair --embed`，正常 |
+| 中文关键词搜不到 | `search` 用 Postgres tsvector，不切中文词。中文请用 `query`（需要 API key） |
+| `import` 后 `backlinks` 是空的 | 要再跑一次 `repair --links` 才建图，这是设计如此（大批量导入时更快） |
+| `bun test` 有 119 个 skip | 需要外部 `DATABASE_URL` 的 E2E，正常 |
+| 二进制第一次启动稍慢 | 首次要把扩展包解到临时目录，之后就快了 |
+
+---
+
+## E. 真出问题时给我什么信息
+
+```bash
+./scripts/verify-binary.sh > /tmp/report.txt 2>&1
+cfbrain doctor --json >> /tmp/report.txt 2>&1
+cfbrain version >> /tmp/report.txt 2>&1
+```
+把 `/tmp/report.txt` 发我即可。里面不含任何密钥。

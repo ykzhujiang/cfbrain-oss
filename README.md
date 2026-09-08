@@ -14,6 +14,14 @@ cd cfbrain-oss
 ./install.sh
 ```
 
+Or build a single self-contained binary — no Bun, no `node_modules`, no source
+tree needed to run it:
+
+```bash
+bun run build          # -> bin/cfbrain  (79 MB, everything embedded)
+./scripts/verify-binary.sh
+```
+
 ---
 
 ## Why this exists
@@ -189,8 +197,6 @@ is only as good as the context you give it.
 
 Being honest about what does not work yet:
 
-- **No standalone binary.** `bun run build` produces one, but it cannot open a local
-  PGLite brain (the WASM payload is not embedded). Install via clone + `bun link`.
 - **CJK keyword search is weak.** `search` uses Postgres `tsvector`, which does not
   segment Chinese/Japanese/Korean. Use `query` (vector search) for CJK content.
 - **Large file attachments over ~100 MB fail on Feishu push.** The uploader is not
@@ -211,6 +217,7 @@ Being honest about what does not work yet:
 | [docs/mcp/](docs/mcp/) | Claude Desktop / Claude Code / MCP setup |
 | [docs/ENGINES.md](docs/ENGINES.md) | PGLite vs Postgres trade-offs |
 | [docs/INSTALL-AND-MULTI-AGENT.md](docs/INSTALL-AND-MULTI-AGENT.md) | Install options, using your own Feishu wiki + categories, letting other agents write via MCP |
+| [docs/MANUAL-TESTING.md](docs/MANUAL-TESTING.md) | Step-by-step manual test guide with expected output |
 | [docs/AUDIT-AND-STRIPPING.md](docs/AUDIT-AND-STRIPPING.md) | How this open-source build was separated from its private origin |
 | [CONTRIBUTING.md](CONTRIBUTING.md) | Development workflow |
 

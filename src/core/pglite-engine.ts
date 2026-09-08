@@ -4,6 +4,7 @@ import { pg_trgm } from '@electric-sql/pglite/contrib/pg_trgm';
 import type { BrainEngine } from './engine.ts';
 import { runMigrations } from './migrate.ts';
 import { getPgliteSchemaSql } from './pglite-schema.ts';
+import { getPgliteAssets, getEmbeddedExtensions } from './pglite-assets.ts';
 import type {
   Page, PageInput, PageFilters,
   Chunk, ChunkInput,
@@ -30,9 +31,18 @@ export class PGLiteEngine implements BrainEngine {
   // Lifecycle
   async connect(config: EngineConfig): Promise<void> {
     const dataDir = config.database_path || undefined; // undefined = in-memory
+
+    // Supply the WASM payloads and extension bundles explicitly so that a
+    // `bun build --compile` binary is fully self-contained. Both helpers return
+    // null when unavailable, in which case we fall back to the package's own
+    // resolution (correct when running from source).
+    const assets = await getPgliteAssets();
+    const embeddedExtensions = await getEmbeddedExtensions();
+
     this._db = await PGlite.create({
       dataDir,
-      extensions: { vector, pg_trgm },
+      extensions: embeddedExtensions ?? { vector, pg_trgm },
+      ...(assets ?? {}),
     });
   }
 

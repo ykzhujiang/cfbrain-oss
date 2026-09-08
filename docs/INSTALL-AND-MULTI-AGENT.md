@@ -31,32 +31,52 @@ cfbrain list
 **Verified:** on a clean machine with an empty `HOME`, `install.sh` completes and
 `doctor` passes. `bun link` then gives a working global `cfbrain`.
 
-### Not currently viable: single-file binary
-
-`package.json` has a `build` script that produces a 65 MB standalone binary:
+### Also works: single self-contained binary
 
 ```bash
-bun run build     # -> bin/cfbrain
+bun run build              # -> bin/cfbrain   (79 MB)
+bun run build:all          # + linux-x64 (116 MB)
+./scripts/verify-binary.sh # 11 checks in a fully isolated environment
 ```
 
-The binary runs (`--help` works) **but cannot open a local PGLite brain**:
+The binary needs **nothing else**: no Bun, no `node_modules`, no source tree.
+Hand someone the file and it runs.
+
+**Verified** by copying it to an empty directory and running under `env -i`
+(empty environment, no inherited `PATH`, throwaway `HOME`): `init` → `put` →
+`get` → `list` → `search` → `repair --links` → `doctor` → MCP `tools/list` +
+`put_page` all pass — 11/11.
+
+<details>
+<summary>What had to be fixed to make this work</summary>
+
+PGLite loads five payloads as side files from its npm package: `pglite.wasm`
+(8.3 MB), `pglite.data` (5.0 MB), `initdb.wasm` (168 KB), plus `vector.tar.gz`
+and `pg_trgm.tar.gz` extension bundles. `bun build --compile` does not bundle
+them, and their lookup paths are baked to Bun's virtual filesystem, so the
+binary failed with:
 
 ```
-ENOENT: no such file or directory, open '/$bunfs/root/pglite.data'
+ENOENT: open '/$bunfs/root/pglite.data'
+error: Extension bundle not found: file:///$bunfs/pg_trgm.tar.gz
 ```
 
-PGLite ships a 5 MB `pglite.data` WASM payload that Bun's compiler does not embed,
-and the lookup path is baked to Bun's virtual filesystem, so copying the file next
-to the binary does not help either (tested). Fixing this needs asset-embedding work
-in the build.
+Copying the files next to the binary does not help — the paths point into
+`/$bunfs/`.
 
-**Consequence:** there is no "download one file and run" distribution yet. Everyone
-needs the repo + Bun. If you want a true single binary, that is a real task, not a
-config flag.
+Fix (`src/core/pglite-assets.ts`): import every payload with
+`with { type: 'file' }` so Bun embeds it, then
+- pass the WASM/data payloads to `PGlite.create()` via its documented
+  `pgliteWasmModule` / `initdbWasmModule` / `fsBundle` options;
+- for extensions, PGLite only accepts `bundlePath: URL` and reads `file:` URLs
+  off the real filesystem, so the embedded tarballs are written once into a
+  version-keyed temp dir and referenced from there.
 
-> A binary built this way *should* still work against a remote Postgres
-> (`CFBRAIN_DATABASE_URL`), since that path never touches PGLite — but that is
-> untested, so do not rely on it.
+Both paths degrade gracefully: if the embedded assets cannot be loaded, PGLite's
+own resolution takes over, which is what happens when running from source. This
+accounts for the size increase from 65 MB to 79 MB.
+
+</details>
 
 ---
 
@@ -221,7 +241,7 @@ cfbrain feishu push --all
 |---|---|
 | `git clone` + install script | **works** (verified on empty HOME) |
 | Global `cfbrain` command | **works** via `bun link` |
-| Download one binary, run it | **does not work** for local PGLite — needs asset-embedding work |
+| Download one binary, run it | **works** — `bun run build`, verified 11/11 in an isolated environment |
 | `npm install -g` from GitHub | untested; repo is private, so not usable by others yet |
 | Own categories | **works**, fully replaceable |
 | Own Feishu wiki | **works**, but the space must be created by hand first |
