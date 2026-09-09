@@ -21,7 +21,7 @@
         <key>FEISHU_APP_ID</key>
         <string><YOUR_FEISHU_APP_ID></string>
         <key>FEISHU_APP_SECRET</key>
-        <string>8ceJXC5e3Hvw42c4SqjzSbTrMhwZkfXY</string>
+        <string><YOUR_FEISHU_APP_SECRET></string>
         <key>OPENCODE_SERVER_URL</key>
         <string>http://127.0.0.1:3496</string>
         <key>OPENCODE_CWD</key>
