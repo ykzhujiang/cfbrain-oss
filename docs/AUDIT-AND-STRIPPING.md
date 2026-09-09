@@ -141,8 +141,7 @@ Placeholder mapping: `<YOUR_FEISHU_APP_ID>`, `<YOUR_FEISHU_SPACE_ID>`,
 
 `README.md`, `QUICKSTART.md`, `.env.example` (documents all 21 env vars),
 `install.sh` (idempotent installer), `.gitignore` (hardened with the 2.1 lesson),
-`examples/` (3 fictional pages), `agent-templates/README.md`,
-`scripts/scan-secrets.sh`.
+`examples/` (3 fictional pages), `agent-templates/README.md`.
 
 ## 7. Bug found and fixed during verification
 
@@ -166,8 +165,10 @@ promising results that would not appear.
 
 ## 8. Verification evidence
 
+A leak scanner was run against the tree before publishing (the scanner itself
+is not shipped here — see section 10). Its final report:
+
 ```
-$ ./scripts/scan-secrets.sh
  ok   no OpenAI/Anthropic API keys
  ok   no Feishu app ids or open ids
  ok   no Feishu space id / wiki node tokens
@@ -215,14 +216,16 @@ A clean new repo says nothing about the old ones. These require human action:
 
 ## 10. Reusing this process
 
-`scripts/scan-secrets.sh` is the durable artifact. Run it before every commit:
+The leak scanner used for this strip is **deliberately not shipped in this
+repository**. A scanner has to spell out the very identifiers it is looking for
+— tenant ids, org names, agent codenames — so committing it to a public repo
+leaks exactly what it was written to protect. Keep that scanner in the *private*
+origin repo, where the sensitive data actually lives, and run it there before
+any extraction.
 
-```bash
-./scripts/scan-secrets.sh   # exit 0 = clean, 1 = blocked
-```
-
-It checks seven classes: API-key shapes, tenant identifiers, personal/org
-identifiers, cross-agent credential paths, hardcoded home paths, real email
-addresses, and files that must never be committed. Extend the patterns for your
-own environment — a scanner that has never blocked anything is not proof of
-cleanliness, only of a weak pattern set.
+If you build one, cover these seven classes: API-key shapes, tenant identifiers,
+personal/org identifiers, cross-agent credential paths, hardcoded home paths,
+real email addresses, and files that must never be committed. And remember: a
+scanner that has never blocked anything is not proof of cleanliness, only of a
+weak pattern set — test it by planting a known-bad string and confirming it
+fails.

@@ -160,19 +160,6 @@ cp .env.example .env
 > adding a `.gitignore` rule does *not* untrack an already-committed file — see
 > [docs/AUDIT-AND-STRIPPING.md](docs/AUDIT-AND-STRIPPING.md) for how that bites.
 
-### Leak protection
-
-This repo ships a scanner and a git hook so the mistake above cannot repeat:
-
-```bash
-./scripts/scan-secrets.sh    # exit 0 = clean, 1 = blocked
-./scripts/install-hooks.sh   # run once: blocks any commit that fails the scan
-```
-
-The scanner checks API-key shapes, tenant identifiers, personal data, hardcoded
-home paths, real email addresses, and files that must never be committed. Extend
-the patterns in `scripts/scan-secrets.sh` for your own environment.
-
 ---
 
 ## Agent templates (optional)
