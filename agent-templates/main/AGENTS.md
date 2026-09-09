@@ -62,7 +62,7 @@
 - Agent 名称：<AGENT_NAME>
 - 端口：Main 3496 / Generator 3497 / Evaluator 3498 / Planner 3499
 - Workspace：`~/.<AGENT_NAME>/`（Main）、`~/.<AGENT>-generator/`、`~/.<AGENT>-evaluator/`、`~/.<AGENT>-planner/`
-- GitHub 仓库：`ykzhujiang/<AGENT_NAME>`
+- GitHub 仓库：`<your-org>/<AGENT_NAME>`
 - 飞书通知：`lark-cli im +messages-send --as bot --profile <YOUR_FEISHU_APP_ID> --user-id <YOUR_FEISHU_OWNER_OPEN_ID> --text "消息内容"`
 - 通知接收人：<OWNER>
 
@@ -82,20 +82,34 @@
 - `../planner/` — Planner Agent 的 AGENTS.md 及工作目录
 - `../launchd/` — LaunchAgent plist 文件
 
-### 飞书 Bot 配置
+### 飞书 Bot（可选，需自行实现 bridge）
 
-通过 opencode-lark bridge 连接飞书，用户可在飞书群聊中直接对话。
+CFBrain 自带的飞书能力是**知识库联动**（`cfbrain feishu push` / `poll` /
+`resolve-comment`）：把词条推成飞书 wiki 文档、把文档上的评论收回来处理。
+**这部分开箱可用。**
 
-- App ID: `<YOUR_FEISHU_APP_ID>`
-- Bridge 位置：`main/opencode-lark/`
-- LaunchAgent：`com.<AGENT_NAME>.lark.plist`（KeepAlive + RunAtLoad）
+若还想在飞书**群聊里直接对话**，需要一个 webhook bridge，把飞书推过来的消息
+转给你的 Agent runtime：
+
+```
+飞书群聊 @bot  →  webhook  →  bridge  →  Agent runtime  →  cfbrain CLI
+```
+
+⚠️ **该 bridge 不包含在本仓库中**，需自行实现或选用现成方案。实现时需要：
+
+- 飞书开放平台的 App ID / App Secret（**从环境变量读，不要写进配置文件**）
+- 一个公网可达的 webhook 端点（本地开发可用 ngrok / Cloudflare Tunnel）
+- 常驻进程管理（launchd / systemd / pm2）
+
+⚠️ 常驻服务配 `KeepAlive` 时务必先确认它能真的启动。一个启动即崩溃的
+服务加上自动重启，会在无人发现的情况下写出巨量错误日志。
 
 ### cfbrain 数据目录
 
-数据位于 `~/.<AGENT>-data/.cfbrain/`，通过 Git 同步到 GitHub：
-- 数据仓库：`ykzhujiang/cfbrain-data`（与旧系统共用同一个远端仓库）
+数据位于 `~/.<AGENT>-data/.cfbrain/`，通过 Git 同步到远端：
+- 数据仓库：`<your-org>/<your-data-repo>`（**请用私有仓库** —— 里面是你的全部知识内容）
 - 本地路径：`~/.<AGENT>-data/.cfbrain/`（`pages/` + `raw/` + `brain.pglite/` + `config.json`）
-- CLI 源码：`~/.<AGENT_NAME>/cfbrain-cli/`（在代码仓 `ykzhujiang/<AGENT_NAME>` 内）
+- CLI 源码：`~/.<AGENT_NAME>/cfbrain-cli/`
 - 配置：`~/.<AGENT>-data/.cfbrain/config.json`
 
 数据变更后应执行 git commit + push 同步到远端：

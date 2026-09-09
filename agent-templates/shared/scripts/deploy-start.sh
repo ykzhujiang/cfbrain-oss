@@ -313,15 +313,17 @@ fi
 
 # --- Step 5: Verify lark bridge ---
 echo ""
-echo "Step 5: Verifying lark bridge..."
+echo "Step 5: Verifying Feishu chat bridge (optional)..."
 if [ "$DRY_RUN" = true ]; then
     step_skip "DRY RUN: skipping verification"
 else
-    lark_pid=$(pgrep -f "opencode-lark.*<AGENT_NAME>" 2>/dev/null || true)
+    # The chat bridge is NOT part of this repository — see the "飞书 Bot" section
+    # in main/AGENTS.md. This check only reports whether you wired one up yourself.
+    lark_pid=$(pgrep -f "lark.*bridge.*<AGENT_NAME>" 2>/dev/null || true)
     if [ -n "$lark_pid" ]; then
-        step_pass "opencode-lark bridge running (PID: $lark_pid)"
+        step_pass "Feishu chat bridge running (PID: $lark_pid)"
     else
-        step_skip "opencode-lark bridge not detected (may not be configured)"
+        step_skip "No Feishu chat bridge detected (optional — not shipped with CFBrain)"
     fi
 fi
 

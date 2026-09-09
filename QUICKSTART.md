@@ -7,8 +7,8 @@ Goal: a working brain with real content in it, in about 5 minutes.
 ## 0. Install
 
 ```bash
-git clone https://github.com/ykzhujiang/cfbrain-oss.git
-cd cfbrain-oss
+git clone https://github.com/ykzhujiang/cfbrain-clean.git
+cd cfbrain-clean
 ./install.sh
 ```
 

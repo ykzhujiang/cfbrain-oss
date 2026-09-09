@@ -74,7 +74,7 @@ CFBrain OC 是<OWNER>的个人知识库管理系统。核心功能：
 本 Agent 对应的部署信息：
 - Workspace：`$CFBRAIN_HOME-generator/generator/`（Generator 专属）
 - 主仓库路径：`$CFBRAIN_HOME`（共享，git pull/push 从这里操作）
-- GitHub 仓库：`ykzhujiang/<AGENT_NAME>`
+- GitHub 仓库：`<your-org>/<AGENT_NAME>`
 - 端口：Generator 3497
 
 ### 启动时必读（固定顺序）

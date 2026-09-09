@@ -40,7 +40,9 @@ agent-templates/*/logs/*.log
 agent-templates/*/.opencode/node_modules/
 minutes/
 attachments/
+# chat bridge working dirs (not shipped with CFBrain)
 .opencode-lark/
+*-lark-bridge/
 .playwright-cli/
 
 # ---------------------------------------------------------------------------

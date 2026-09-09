@@ -15,8 +15,8 @@ Short answers: `git clone` + two commands · yes, fully · yes, over MCP.
 ### Recommended: clone + link
 
 ```bash
-git clone https://github.com/ykzhujiang/cfbrain-oss.git
-cd cfbrain-oss
+git clone https://github.com/ykzhujiang/cfbrain-clean.git
+cd cfbrain-clean
 ./install.sh          # installs Bun if missing, deps, .env, local brain
 bun link              # makes `cfbrain` a global command
 ```
@@ -213,8 +213,8 @@ Same registry, same behaviour.
 
 ```bash
 # 1. install
-git clone https://github.com/ykzhujiang/cfbrain-oss.git
-cd cfbrain-oss && ./install.sh && bun link
+git clone https://github.com/ykzhujiang/cfbrain-clean.git
+cd cfbrain-clean && ./install.sh && bun link
 
 # 2. key for semantic search
 $EDITOR .env                       # set OPENAI_API_KEY

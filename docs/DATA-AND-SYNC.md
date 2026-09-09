@@ -144,7 +144,7 @@ cfbrain migrate --to supabase
 
 | | 内容 | 归谁 |
 |---|---|---|
-| `github.com/ykzhujiang/cfbrain-oss` | **只有代码**（CLI 源码、文档、模板） | 我们，MIT 协议 |
+| `github.com/ykzhujiang/cfbrain-clean` | **只有代码**（CLI 源码、文档、模板） | 我们，MIT 协议 |
 | 他的 `~/.cfbrain/` | **只有他的数据** | 他自己，完全私有 |
 | 他自己建的 `my-brain` 私有仓库 | 他的数据备份（可选） | 他自己 |
 

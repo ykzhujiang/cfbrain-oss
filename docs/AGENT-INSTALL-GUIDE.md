@@ -45,8 +45,8 @@
 仓库是公开的，直接 clone：
 
 ```bash
-git clone https://github.com/ykzhujiang/cfbrain-oss.git
-cd cfbrain-oss
+git clone https://github.com/ykzhujiang/cfbrain-clean.git
+cd cfbrain-clean
 export REPO="$PWD"      # 后面会用到，记住这个路径
 echo "$REPO"
 ```

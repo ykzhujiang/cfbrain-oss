@@ -16,7 +16,7 @@
 仓库里没有预编译文件（二进制 79 MB，不适合进 git）。自己编一个：
 
 ```bash
-cd cfbrain-oss
+cd cfbrain-clean
 bun run build            # 产出 bin/cfbrain，约 10 秒
 ```
 
@@ -232,7 +232,7 @@ cf feishu setup
 ## B. 测源码安装
 
 ```bash
-git clone https://github.com/ykzhujiang/cfbrain-oss.git && cd cfbrain-oss
+git clone https://github.com/ykzhujiang/cfbrain-clean.git && cd cfbrain-clean
 ./install.sh
 ```
 预期结尾：`ok doctor passed` + `CFBrain is installed.`

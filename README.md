@@ -14,8 +14,8 @@ project, not to anyone. Syncing is opt-in and you choose the destination; see
 [docs/DATA-AND-SYNC.md](docs/DATA-AND-SYNC.md).
 
 ```bash
-git clone https://github.com/ykzhujiang/cfbrain-oss.git
-cd cfbrain-oss
+git clone https://github.com/ykzhujiang/cfbrain-clean.git
+cd cfbrain-clean
 ./install.sh
 ```
 

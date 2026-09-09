@@ -66,7 +66,7 @@
 本 Agent 对应的部署信息：
 - Workspace：`$CFBRAIN_HOME-evaluator/evaluator/`（Evaluator 专属）
 - 主仓库路径：`$CFBRAIN_HOME`（共享，git pull/push 从这里操作）
-- GitHub 仓库：`ykzhujiang/<AGENT_NAME>`
+- GitHub 仓库：`<your-org>/<AGENT_NAME>`
 - 端口：Evaluator 3498
 
 ---
